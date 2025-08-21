@@ -84,7 +84,7 @@ struct MusicVideoPreview: View {
             return
         }
         
-        let apiKey = "AIzaSyDMXnvh0DRlv8cudxiu7dRb6XNcNGxDX9M"
+        let apiKey = ""
         let urlString = "https://www.googleapis.com/youtube/v3/videos?id=\(videoID)&part=snippet&key=\(apiKey)"
         
         guard let url = URL(string: urlString) else {

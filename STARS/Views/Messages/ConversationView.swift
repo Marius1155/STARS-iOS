@@ -37,7 +37,7 @@ class ConversationViewModel: ObservableObject {
     
     func fetchInitialData() {
         // Fetch the first page of messages (e.g., the latest 50)
-        let paging = STARSAPI.OffsetPaginationInput(offset: 0, limit: 50)
+        let paging = STARSAPI.OffsetPaginationInput(offset: 0, limit: 200)
         let query = STARSAPI.GetConversationQuery(conversationId: conversationID, messagesPaging: .some(paging))
         
         Network.shared.apollo.fetch(query: query) { result in
