@@ -1,0 +1,27 @@
+{
+  "schemaNamespace": "STARSAPI",
+  "input": {
+    "operationSearchPaths": [
+      "STARSAPI/Sources/STARSAPI/**/*.graphql"
+    ],
+    "schemaSearchPaths": [
+      "STARSAPI/Sources/STARSAPI/**/*.graphqls"
+    ]
+  },
+  "output": {
+    "testMocks": {
+      "none": {}
+    },
+    "schemaTypes": {
+      "path": "./STARSAPI",
+      "moduleType": {
+        "swiftPackageManager": {}
+      }
+    },
+    "operations": {
+      "relative": {
+        "subpath": "Operations"
+      }
+    }
+  }
+}

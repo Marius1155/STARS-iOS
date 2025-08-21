@@ -1,0 +1,29 @@
+# General
+.DS_Store
+*.backup
+
+# Xcode
+build/
+DerivedData/
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/contents.xcworkspacedata
+*.xcworkspace/xcuserdata/
+*~.nib/
+
+# Swift Package Manager
+.build/
+Packages/
+*.xcodeproj
+
+# NodeJS
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Tools
+apollo-ios-cli
+
+# Apollo Generated Code
+STARSAPI/Sources/
+Sources/

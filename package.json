@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "apollo": "^2.34.0",
+    "graphql": "^16.11.0"
+  }
+}
