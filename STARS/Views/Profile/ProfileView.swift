@@ -10,7 +10,7 @@ import SDWebImageSwiftUI
 import STARSAPI
 
 struct ProfileView: View {
-    @EnvironmentObject var dataManager: DataManager
+     
     @AppStorage("userID") var userID: String = ""
     @AppStorage("userIsLoggedIn") var userIsLoggedIn: Bool = false
     @AppStorage("userHasPremium") var userHasPremium: Bool = false
@@ -19,7 +19,7 @@ struct ProfileView: View {
     @AppStorage("userUsername") var userUsername: String = ""
     @AppStorage("userDisplayName") var userDisplayName: String = ""
     @AppStorage("userPronouns") var userPronouns: String = ""
-    @AppStorage("userAccentColorHex") var userAccentColorHex: String = ""
+    @AppStorage("userCustomSecondaryColor") var userCustomSecondaryColor: String = ""
     
     var id: String
     
@@ -40,7 +40,7 @@ struct ProfileView: View {
         ScrollView {
             VStack {
                 if userID == id {
-                    Text("Hello, \(userDisplayName)! Your username is \(userUsername), your pronouns are \(userPronouns) and your accent color is \(userAccentColorHex).")
+                    Text("Hello, \(userDisplayName)! Your username is \(userUsername), your pronouns are \(userPronouns) and your accent color is \(userCustomSecondaryColor).")
                 }
             }
         }
@@ -61,7 +61,7 @@ struct ProfileView: View {
             
             else {
                 NotificationCenter.default.post(name: .showTabBar, object: nil)
-                dataManager.shouldShowTabBar = true
+                DataManager.shared.shouldShowTabBar = true
             }
         }
         /*ScrollView {
@@ -464,7 +464,7 @@ struct ProfileView: View {
 #Preview {
     /*NavigationView{
         ProfileView(id: "AX7ztju3UBWYsTXCXfFsYFCcJSl2")
-            .environmentObject(DataManager())
+             
             .onAppear {
                 DispatchQueue.main.async {
                     if let user = Auth.auth().currentUser {

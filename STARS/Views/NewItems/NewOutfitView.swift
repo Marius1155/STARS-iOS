@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct NewOutfitView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     
     @State private var sortedArtists: [Artist] = []
     @State private var sortedOutfits: [Outfit] = []
@@ -167,5 +167,5 @@ struct NewOutfitView: View {
 
 #Preview {
     /*NewOutfitView()
-        .environmentObject(DataManager())*/
+         */
 }

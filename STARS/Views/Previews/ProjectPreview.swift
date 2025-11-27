@@ -13,7 +13,7 @@ struct ProjectPreview: View {
     
     let projectID: String
     
-    @State private var project: STARSAPI.GetProjectPreviewQuery.Data.Project? = nil
+    @State private var project: STARSAPI.GetProjectPreviewQuery.Data.Projects.Edge.Node? = nil
     @State private var imageURL: URL? = nil
     @State private var artistsIDs: [String] = []
     @State private var isLoading = true
@@ -62,6 +62,7 @@ struct ProjectPreview: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .padding(.leading, -5)
+                        .foregroundStyle(.gray)
                 }
                 .foregroundColor(.gray)
                 .font(.caption)
@@ -70,28 +71,34 @@ struct ProjectPreview: View {
             }
         }
         .onAppear {
-            fetchProject()
+            DispatchQueue.main.async {
+                fetchProject()
+            }
         }
     }
     
     func fetchProject() {
         let query = STARSAPI.GetProjectPreviewQuery(projectId: projectID)
+        print("cmonn")
         
         Network.shared.apollo.fetch(query: query) { result in
             switch result {
             case .success(let graphQLResult):
-                if let fetchedProject = graphQLResult.data?.projects.first {
+                if let fetchedProject = graphQLResult.data?.projects.edges.first?.node {
                     self.project = fetchedProject
                     
-                    if let coverURLString = fetchedProject.covers.first?.image,
+                    print(project?.title ?? "nada")
+                    
+                    if let coverURLString = fetchedProject.covers.edges.first?.node.image,
                        let url = URL(string: coverURLString) {
                         self.imageURL = url
                     }
                     
-                    self.artistsIDs = fetchedProject.projectArtists.compactMap { $0.artist.id }
+                    self.artistsIDs = fetchedProject.projectArtists.edges.compactMap { $0.node.artist.id }
                 }
                 self.isLoading = false
             case .failure(let error):
+                print("wtff")
                 print("Failed to fetch project \(projectID): \(error)")
                 self.isLoading = false
             }

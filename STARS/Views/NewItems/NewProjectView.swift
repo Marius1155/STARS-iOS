@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct NewProjectView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     
     @State private var sortedCovers: [ProjectCover] = []
     @State private var sortedArtists: [Artist] = []
@@ -609,6 +609,6 @@ struct NewProjectView: View {
 #Preview {
     /*Form {
         NewProjectView()
-            .environmentObject(DataManager())
+             
     }*/
 }

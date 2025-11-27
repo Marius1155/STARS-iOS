@@ -9,7 +9,7 @@ import SwiftUI
 import SDWebImageSwiftUI
 
 struct PodcastPreview: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     @State private var image: String = ""
     
     var podcast: Podcast*/
@@ -74,7 +74,7 @@ struct PodcastPreview: View {
 }
 
 #Preview {
-    /*@Previewable @EnvironmentObject var dataManager: DataManager
+    /*@Previewable  
     PodcastPreview(podcast: dataManager.podcasts.first!)
-        .environmentObject(DataManager())*/
+         */
 }

@@ -9,7 +9,7 @@ import SwiftUI
 import SDWebImageSwiftUI
 
 struct ProjectReviewPreview: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     @State private var image: String = ""
     
     @State private var project: Project? = nil

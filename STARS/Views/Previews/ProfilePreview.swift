@@ -9,7 +9,7 @@ import SwiftUI
 import SDWebImageSwiftUI
 
 struct ProfilePreview: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     
     var profileID: String
     @State private var profile: Profile = Profile.empty()
@@ -19,7 +19,7 @@ struct ProfilePreview: View {
     var body: some View {
         /*NavigationLink {
             ProfileView(id: profileID)
-                .accentColor(Color(hex: profile.accentColorHex) ?? .accentColor)
+                .accentColor(Color(hex: profile.customSecondaryColor) ?? .accentColor)
         } label : {
             HStack {
                 ProfilePictureView(pictureURL: profile.profilePicture, diameter: 64)
@@ -56,7 +56,7 @@ struct ProfilePreview: View {
 
 #Preview {
     /*ProfilePreview(profileID: "PuAHWOG22FdfzyBqgxb69Xxmbat2")
-        .environmentObject(DataManager())
+         
         .onAppear {
             UserDefaults.standard.set("AX7ztju3UBWYsTXCXfFsYFCcJSl2", forKey: "userID")
         }*/

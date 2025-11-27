@@ -22,9 +22,10 @@ struct STARSApp: App {
 }
 
 struct RootView: View {
+    @State private var dataManager = DataManager.shared
     @AppStorage("userID") var userID: String = ""
     @AppStorage("userIsLoggedIn") var userIsLoggedIn: Bool = false
-    @AppStorage("userAccentColorHex") var userAccentColorHex: String = ""
+    @AppStorage("userCustomSecondaryColor") var userCustomSecondaryColor: String = ""
     
     var body: some View {
         Group {
@@ -34,9 +35,11 @@ struct RootView: View {
                 SplashView()
             } else {
                 ContentView()
-                    .environmentObject(DataManager())
-                    .tint(Color(hex: userAccentColorHex) ?? .accentColor)
             }
+        }
+        .tint(dataManager.accentColor)
+        .onChange(of: dataManager.accentColor) { oldValue, newValue in
+            print("it changed !")
         }
     }
 }
@@ -69,7 +72,7 @@ struct RootView: View {
                 UserDefaults.standard.set("Marius", forKey: "userDisplayName")
                 UserDefaults.standard.set(true, forKey: "userHasPremium")
                 UserDefaults.standard.set("he/him", forKey: "userPronouns")
-                UserDefaults.standard.set("#0D98BA", forKey: "userAccentColorHex")
+                UserDefaults.standard.set("#0D98BA", forKey: "userCustomSecondaryColor")
                 UserDefaults.standard.set(true, forKey: "userIsStaff")
                 UserDefaults.standard.set(true, forKey: "userIsSuperuser")
             }

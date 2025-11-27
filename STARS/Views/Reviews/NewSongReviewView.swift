@@ -9,7 +9,7 @@ import SwiftUI
 
 struct NewSongReviewView: View {
     /*@Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var dataManager: DataManager
+     
     let song: Song
     @State private var starcount: Double = 0.0
     @State private var text: String = ""
@@ -178,7 +178,7 @@ struct NewSongReviewView: View {
 }
 
 #Preview {
-    /*@Previewable @EnvironmentObject var dataManager: DataManager
+    /*@Previewable  
     NewSongReviewView(song: dataManager.songs.first!)
-        .environmentObject(DataManager())*/
+         */
 }

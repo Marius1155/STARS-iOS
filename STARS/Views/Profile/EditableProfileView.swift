@@ -10,7 +10,7 @@ import SDWebImageSwiftUI
 import PhotosUI
 
 struct EditableProfileView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     
     @Binding var profile: Profile
     
@@ -54,7 +54,7 @@ struct EditableProfileView: View {
 }
 
 struct ProfilePicturePickerView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     
     @State private var selectedItem: PhotosPickerItem? = nil
     
@@ -100,7 +100,7 @@ struct ProfilePicturePickerView: View {
 }
 
 struct BannerPicturePickerView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     
     @State private var image: String? = nil
     @State private var selectedItem: PhotosPickerItem? = nil
@@ -153,7 +153,7 @@ struct BannerPicturePickerView: View {
 
 /*#Preview {
     EditableProfileView(id: "AX7ztju3UBWYsTXCXfFsYFCcJSl2")
-        .environmentObject(DataManager())
+         
         .onAppear {
             UserDefaults.standard.set("AX7ztju3UBWYsTXCXfFsYFCcJSl2", forKey: "userID")
         }

@@ -36,8 +36,15 @@ extension Color {
     }
 }
 
-class DataManager: ObservableObject {
-    @Published var shouldShowTabBar: Bool = true
+@Observable
+@MainActor
+class DataManager {
+    static let shared = DataManager()
+    
+    var shouldShowTabBar: Bool = true
+    var accentColor: Color = .white
+    
+    private init() {} 
 }
     
     /*@Published var project: GetProjectDetailQuery.Data.Project?

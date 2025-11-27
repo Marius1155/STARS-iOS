@@ -72,13 +72,12 @@ class CustomTabBarController: UITabBarController, UITabBarControllerDelegate {
 }
 
 struct UIKitTabView: UIViewControllerRepresentable {
-    @EnvironmentObject var dataManager: DataManager
     @AppStorage("userID") var userID: String = ""
     @AppStorage("userIsStaff") var userIsStaff: Bool = false
 
     func makeUIViewController(context: Context) -> CustomTabBarController {
         let tabBarController = CustomTabBarController()
-        tabBarController.dataManager = dataManager
+        tabBarController.dataManager = DataManager.shared
         
         // Create tabs wrapped in UINavigationControllers
 
@@ -105,7 +104,7 @@ struct UIKitTabView: UIViewControllerRepresentable {
         )
         
         let searchVC = createTab(
-            view: SearchView(),
+            view: SearchAppleMusicAlbumsView(),
             title: "Search",
             image: "magnifyingglass",
             tag: 4,

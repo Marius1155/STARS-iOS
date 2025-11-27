@@ -9,7 +9,7 @@ import SwiftUI
 import SDWebImageSwiftUI
 
 struct PodcastDetailView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     
     var podcast: Podcast*/
     var body: some View {
@@ -43,7 +43,7 @@ struct PodcastDetailView: View {
 }
 
 #Preview {
-    /*@Previewable @EnvironmentObject var dataManager: DataManager
+    /*@Previewable  
     PodcastDetailView(podcast: dataManager.podcasts.first!)
-        .environmentObject(DataManager())*/
+         */
 }

@@ -11,7 +11,8 @@ extension DateFormatter {
 }
 
 struct ProjectDetailView: View {
-    @EnvironmentObject var dataManager: DataManager
+     
+    
     @State @AppStorage("userID") var userID: String = ""
     
     @State private var showNewReview = false
@@ -22,7 +23,7 @@ struct ProjectDetailView: View {
     @State private var showErrorPostingNewReviewAlert = false
     @State private var songsHaveLoaded = false
     
-    @State private var project: GetProjectDetailQuery.Data.Project?
+    @State private var project: GetProjectDetailQuery.Data.Projects.Edge.Node?
     
     let projectID: String
     
@@ -36,7 +37,7 @@ struct ProjectDetailView: View {
                         .frame(height: 120)
                         .shadow(radius: 10)
                     
-                    if let covers = project?.covers.compactMap({ $0 }) {
+                    if let covers = project?.covers.edges.compactMap({ $0.node }) {
                         TabView {
                             ForEach(covers.sorted(by: { $0.position < $1.position }), id: \.id) { cover in
                                 WebImage(url: URL(string: cover.image))
@@ -65,9 +66,9 @@ struct ProjectDetailView: View {
                     .multilineTextAlignment(.center)
                 
                 // --- Project artists ---
-                if let projectArtists = project?.projectArtists {
+                if let projectArtists = project?.projectArtists.edges {
                     ProjectArtistNameView(
-                        artistsIDs: projectArtists.compactMap { $0.artist.id }, linkToArtists: true
+                        artistsIDs: projectArtists.compactMap { $0.node.artist.id }, linkToArtists: true
                     )
                     .font(.title3)
                     .padding(.bottom, -1)
@@ -101,9 +102,8 @@ struct ProjectDetailView: View {
                 // --- Rating & reviews box ---
                 HStack(spacing: 2) {
                     NavigationLink {
-                        if let project = project {
-                            //ProjectReviewsView(projectID: project.id)
-                        }
+                        ReviewsView(objectID: project?.id ?? "", objectType: "project", projectTitle: project?.title ?? "", projectArtistsIDs: project?.projectArtists.edges.compactMap { $0.node.artist.id })
+                             
                     } label: {
                         HStack(spacing: 0) {
                             if let starAverage = project?.starAverage {
@@ -170,7 +170,7 @@ struct ProjectDetailView: View {
                     .padding(.horizontal)
                 
                 // --- Songs list ---
-                if let songs = project?.projectSongs.compactMap({ $0.song }) {
+                if let songs = project?.projectSongs.edges.compactMap({ $0.node.song }) {
                     ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
                         VStack {
                             HStack {
@@ -226,9 +226,12 @@ struct ProjectDetailView: View {
                 }
                 
                 // --- Music Videos horizontal list ---
-                if let videos = project?.projectSongs
-                    .compactMap({ $0.song.musicVideos })
-                    .flatMap({ $0 }) {
+                if let songEdges = project?.projectSongs.edges {
+                    let videos = songEdges
+                        .compactMap { $0.node.song.musicVideos.edges } // unwrap musicVideo edges
+                        .flatMap { $0 } // flatten all edges into a single array
+                        .compactMap { $0.node } // unwrap the actual MusicVideo nodes
+
                     if !videos.isEmpty {
                         HStack {
                             Text("Music Videos")
@@ -238,15 +241,15 @@ struct ProjectDetailView: View {
                         }
                         .padding(.horizontal)
                         .padding(.top)
-                        
+
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack {
                                 ForEach(videos, id: \.id) { video in
                                     NavigationLink {
-                                        //MusicVideoDetailView(musicVideo: video)
+                                        // MusicVideoDetailView(musicVideo: video)
                                     } label: {
-                                        //MusicVideoPreview(musicVideo: video)
-                                           // .foregroundColor(.primary)
+                                        // MusicVideoPreview(musicVideo: video)
+                                        // .foregroundColor(.primary)
                                     }
                                 }
                             }
@@ -259,7 +262,7 @@ struct ProjectDetailView: View {
             .onAppear {
                 fetchProject()
                 NotificationCenter.default.post(name: .showTabBar, object: nil)
-                dataManager.shouldShowTabBar = true
+                DataManager.shared.shouldShowTabBar = true
             }
         }
         .navigationTitle(project?.title ?? "Unknown")
@@ -271,18 +274,20 @@ struct ProjectDetailView: View {
                     .foregroundColor(navTitleColor)
             }
         }
-        /*.sheet(isPresented: $showNewReview) {
+        .sheet(isPresented: $showNewReview) {
             if let project = project {
                 NewProjectReviewView(
                     projectID: project.id,
+                    projectTitle: project.title,
+                    projectArtistsIDs: project.projectArtists.edges.compactMap { $0.node.artist.id },
                     showErrorPostingNewReviewAlert: $showErrorPostingNewReviewAlert
                 ) {
-                    fetchProject()
+                    fetchProjectWithoutReadingCache()
                 }
                 .presentationDetents([.large])
                 .interactiveDismissDisabled()
             }
-        }*/
+        }
         .alert(isPresented: $showErrorPostingNewReviewAlert) {
             Alert(title: Text("Error"),
                   message: Text("Couldn't add review."),
@@ -295,9 +300,24 @@ struct ProjectDetailView: View {
         Network.shared.apollo.fetch(query: STARSAPI.GetProjectDetailQuery(projectId: String(projectID))) { result in
             switch result {
             case .success(let graphQLResult):
-                if let fetched = graphQLResult.data?.projects.first {
+                if let fetched = graphQLResult.data?.projects.edges.first?.node {
                     project = fetched
-                    openedSongs = Array(repeating: false, count: fetched.projectSongs.count)
+                    openedSongs = Array(repeating: false, count: fetched.projectSongs.edges.count)
+                    songsHaveLoaded = true
+                }
+            case .failure(let error):
+                print("Error loading project: \(error)")
+            }
+        }
+    }
+    
+    private func fetchProjectWithoutReadingCache() {
+        Network.shared.apollo.fetch(query: STARSAPI.GetProjectDetailQuery(projectId: String(projectID)), cachePolicy: .fetchIgnoringCacheData) { result in
+            switch result {
+            case .success(let graphQLResult):
+                if let fetched = graphQLResult.data?.projects.edges.first?.node {
+                    project = fetched
+                    openedSongs = Array(repeating: false, count: fetched.projectSongs.edges.count)
                     songsHaveLoaded = true
                 }
             case .failure(let error):

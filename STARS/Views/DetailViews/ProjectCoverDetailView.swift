@@ -10,7 +10,7 @@ import SDWebImageSwiftUI
 
 struct ProjectCoverDetailView: View {
     /*@Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var dataManager: DataManager
+     
     var cover: ProjectCover*/
     
     var body: some View {
@@ -38,7 +38,7 @@ struct ProjectCoverDetailView: View {
 }
 
 #Preview {
-    /*@Previewable @EnvironmentObject var dataManager: DataManager
+    /*@Previewable  
     ProjectCoverDetailView(cover: dataManager.projectCovers.first!)
-        .environmentObject(DataManager())*/
+         */
 }

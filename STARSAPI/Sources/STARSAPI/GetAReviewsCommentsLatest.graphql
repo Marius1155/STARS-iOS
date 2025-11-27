@@ -1,0 +1,32 @@
+#import "CommentFragment.graphql"
+
+query GetAReviewsCommentsLatest (
+    $reviewID: ID!,
+    $commentsFirst: Int,
+    $commentsAfter: String
+) {
+    reviews( filters: { id: { exact: $reviewID }} ) {
+        edges {
+            node {
+                comments (
+                    filters: { replyingTo: { isNull: true } }
+                    order: { dateCreated: DESC }
+                    first: $commentsFirst
+                    after: $commentsAfter
+                    )
+                {
+                    edges {
+                        node {
+                            ...CommentFragment
+                        }
+                    }
+                    pageInfo {
+                        hasPreviousPage
+                        hasNextPage
+                        startCursor
+                    }
+                }
+            }
+        }
+    }
+}

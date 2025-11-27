@@ -10,7 +10,7 @@ import SDWebImageSwiftUI
 
 struct NewMusicVideoReviewView: View {
     /*@Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var dataManager: DataManager
+     
     let musicVideo: MusicVideo
     @State private var starcount: Double = 0.0
     @State private var text: String = ""
@@ -222,7 +222,7 @@ struct NewMusicVideoReviewView: View {
 }
 
 #Preview {
-    /*@Previewable @EnvironmentObject var dataManager: DataManager
+    /*@Previewable  
     NewMusicVideoReviewView(musicVideo: dataManager.musicVideos.first!)
-        .environmentObject(DataManager())*/
+         */
 }

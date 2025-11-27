@@ -1,0 +1,5 @@
+mutation AddCommentToReview($data: CommentCreateInput!) {
+    createComment(data: $data) {
+        id
+    }
+}

@@ -22,7 +22,11 @@ struct ProjectArtistNameView: View {
                         Text(artistsNames[index])
                     }
                     
-                    if index < artistsIDs.count - 1 {
+                    if index < artistsIDs.count - 2 {
+                        Text(", ")
+                    }
+                    
+                    else if index == artistsIDs.count - 2 {
                         Text(" & ")
                     }
                 }
@@ -30,14 +34,17 @@ struct ProjectArtistNameView: View {
                 ForEach(Array(artistsIDs.enumerated()), id: \.offset) { index, id in
                     Text(artistsNames[index])
                     
-                    if index < artistsIDs.count - 1 {
+                    if index < artistsIDs.count - 2 {
+                        Text(", ")
+                    }
+                    
+                    else if index == artistsIDs.count - 2 {
                         Text(" & ")
                     }
                 }
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .font(.caption)
-                .foregroundColor(.gray)
             }
         }
         .onAppear {
@@ -57,7 +64,7 @@ struct ProjectArtistNameView: View {
         Network.shared.apollo.fetch(query: STARSAPI.GetArtistNameQuery(id: String(artistID))) { result in
             switch result {
             case .success(let graphQLResult):
-                if let fetched = graphQLResult.data?.artists.first {
+                if let fetched = graphQLResult.data?.artists.edges.first?.node {
                     completion(fetched.name)
                 }
             case .failure(let error):

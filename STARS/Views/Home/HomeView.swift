@@ -9,7 +9,7 @@ import SwiftUI
 import STARSAPI
 
 struct HomeView: View {
-    @EnvironmentObject var dataManager: DataManager
+     
     @AppStorage("userID") var userID: String = ""
     
     @State private var isReady = false
@@ -35,6 +35,7 @@ struct HomeView: View {
                             ForEach(featuredProjectsIDs, id: \.self) { projectID in
                                 NavigationLink {
                                     ProjectDetailView(projectID: projectID)
+                                    
                                 } label: {
                                     ProjectPreview(projectID: projectID)
                                         .foregroundColor(.primary)
@@ -50,7 +51,7 @@ struct HomeView: View {
         .onAppear {
             fetchFeaturedProjects()
             NotificationCenter.default.post(name: .showTabBar, object: nil)
-            dataManager.shouldShowTabBar = true
+            DataManager.shared.shouldShowTabBar = true
         }
         .navigationTitle("STARS")
     }
@@ -63,7 +64,7 @@ struct HomeView: View {
             case .success(let graphQLResult):
                 if let projects = graphQLResult.data?.projects {
                     // Use IDs directly as Int
-                    featuredProjectsIDs = projects.compactMap { $0.id }
+                    featuredProjectsIDs = projects.edges.compactMap { $0.node.id }
                     isReady = true
                 }
             case .failure(let error):

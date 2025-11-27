@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct ContributeView: View {
-    @EnvironmentObject var dataManager: DataManager
-    
+     
+
     var body: some View {
         Text("Contribute")
     }
@@ -17,5 +17,4 @@ struct ContributeView: View {
 
 #Preview {
     ContributeView()
-        .environmentObject(DataManager())
 }

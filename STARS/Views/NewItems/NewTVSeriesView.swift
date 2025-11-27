@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct NewTVSeriesView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     
     @State private var sortedArtists: [Artist] = []
     @State private var sortedTVSeries: [TVSeries] = []
@@ -198,5 +198,5 @@ struct NewTVSeriesView: View {
 
 #Preview {
     /*NewTVSeriesView()
-        .environmentObject(DataManager())*/
+         */
 }

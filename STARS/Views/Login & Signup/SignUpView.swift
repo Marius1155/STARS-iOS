@@ -10,7 +10,7 @@ struct SignUpView: View {
     @AppStorage("userUsername") var userUsername: String = ""
     @AppStorage("userDisplayName") var userDisplayName: String = ""
     @AppStorage("userPronouns") var userPronouns: String = ""
-    @AppStorage("userAccentColorHex") var userAccentColorHex: String = ""
+    @AppStorage("userCustomSecondaryColor") var userCustomSecondaryColor: String = ""
     
     enum UsernameStatus {
         case idle // Not checked yet
@@ -317,7 +317,7 @@ struct SignUpView: View {
         Network.shared.apollo.fetch(query: query) { result in
             switch result {
             case .success(let graphQLResult):
-                if (graphQLResult.data?.users.first) != nil {
+                if (graphQLResult.data?.users.edges.first?.node) != nil {
                     self.emailStatus = .taken
                     self.emailMessage = "An account already uses this email address."
                 }
@@ -361,7 +361,7 @@ struct SignUpView: View {
         Network.shared.apollo.fetch(query: query) { result in
             switch result {
             case .success(let graphQLResult):
-                if (graphQLResult.data?.users.first) != nil {
+                if (graphQLResult.data?.users.edges.first?.node) != nil {
                     self.usernameStatus = .taken
                     self.usernameMessage = "This username is already taken."
                 }
@@ -417,11 +417,11 @@ struct SignUpView: View {
         Network.shared.apollo.fetch(query: STARSAPI.GetProfileQuery(filters: .some(profileFilter))) { result in
             switch result {
             case .success(let graphQLResult):
-                if let profile = graphQLResult.data?.profiles.first {
+                if let profile = graphQLResult.data?.profiles.edges.first?.node {
                     self.userHasPremium = profile.hasPremium
                     self.userIsStaff = profile.user.isStaff
                     self.userIsSuperuser = profile.user.isSuperuser
-                    self.userAccentColorHex = profile.accentColorHex
+                    self.userCustomSecondaryColor = profile.customSecondaryColor
                     self.userPronouns = profile.pronouns
                     self.userDisplayName = profile.user.firstName
                     self.userIsLoggedIn = true

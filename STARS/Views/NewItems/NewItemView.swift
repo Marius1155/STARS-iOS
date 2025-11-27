@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct NewItemView: View {
-    @EnvironmentObject var dataManager: DataManager
+     
     @State private var type: Int = 1
     
     var body: some View {
@@ -66,5 +66,4 @@ struct NewItemView: View {
 
 #Preview {
     NewItemView()
-        .environmentObject(DataManager())
 }

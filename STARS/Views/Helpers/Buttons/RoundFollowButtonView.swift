@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct RoundFollowButtonView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     
     var userToFollowID: String
     

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct NewArtistView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     
     @State private var name = ""
     @State private var picture = ""
@@ -74,5 +74,5 @@ struct NewArtistView: View {
 
 #Preview {
     /*NewArtistView()
-        .environmentObject(DataManager())*/
+         */
 }

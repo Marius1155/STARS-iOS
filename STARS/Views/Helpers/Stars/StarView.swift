@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct StarView: View {
-    @EnvironmentObject var dataManager: DataManager
+     
     var stars: Double
     var body: some View {
         let (integralPart, fractionalPart) = modf(stars)
@@ -22,13 +22,13 @@ struct StarView: View {
                 }
             }
             
-            if fractionalPart > 0 {
+            if fractionalPart >= 0.45 {
                 Image(systemName: "star.leadinghalf.filled")
                     .foregroundColor(.yellow)
             }
             
             if leftoverStars > 0 {
-                if fractionalPart > 0 {
+                if fractionalPart >= 0.45 {
                     ForEach(1..<leftoverStars, id: \.self) {_ in
                         Image(systemName: "star")
                             .foregroundColor(.yellow)
@@ -48,5 +48,4 @@ struct StarView: View {
 
 #Preview {
     StarView(stars: 3.5)
-        .environmentObject(DataManager())
 }

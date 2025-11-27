@@ -9,7 +9,7 @@ import SwiftUI
 import SDWebImageSwiftUI
 
 struct MusicVideoDetailView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     
     @State private var showMusicVideoReviews = false
     @State private var showNewReview = false
@@ -280,7 +280,7 @@ struct MusicVideoDetailView: View {
 }
 
 #Preview {
-    /*@Previewable @EnvironmentObject var dataManager: DataManager
+    /*@Previewable  
     MusicVideoDetailView(musicVideo: dataManager.musicVideos.first!)
-        .environmentObject(DataManager())*/
+         */
 }

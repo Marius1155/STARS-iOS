@@ -6,41 +6,46 @@
 //
 
 import SwiftUI
+import STARSAPI
 
 struct NewProjectReviewView: View {
-    /*@Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var dataManager: DataManager
+    @Environment(\.dismiss) private var dismiss
+    // 
     @AppStorage("userID") var userID: String = ""
     
-    @Binding var project: Project
+    var projectID: String
+    var projectTitle: String
+    var projectArtistsIDs: [String]
+  
     @Binding var showErrorPostingNewReviewAlert: Bool
     
     var onReviewAdded: (() -> Void)?
     
+    @State private var title: String = ""
     @State private var starcount: Double = 0.0
     @State private var text: String = ""
     @State private var numberOfSubreviews: Int = 0
     @State private var subreviewsTopics: [String] = []
     @State private var subreviewsTexts: [String] = []
     @State private var subreviewsStars: [Double] = []
-    @State private var showAlert: Bool = false*/
+    @State private var showAlert: Bool = false
 
     var body: some View {
-        /*NavigationView {
+        NavigationView {
             VStack {
                 List {
                     VStack(alignment: .leading) {
                         HStack(spacing: 5) {
                             Image(systemName: "opticaldisc.fill")
                             
-                            Text(project.title)
+                            Text(projectTitle)
                                 .bold()
                         }
                         
                         HStack {
-                            Image(systemName: project.artist.count == 1 ? "person.fill" : "person.2.fill")
+                            Image(systemName: projectArtistsIDs.count == 1 ? "person.fill" : "person.2.fill")
                             
-                            ProjectArtistNameView(project: project)
+                            ProjectArtistNameView(artistsIDs: projectArtistsIDs)
                         }
                     }
                     .listRowSeparator(.hidden)
@@ -56,7 +61,10 @@ struct NewProjectReviewView: View {
                             Text("Write your review")
                                 .bold()
                                 .font(.headline)
-                                .padding(.top)
+                                .padding(.vertical)
+                            
+                            TextField("Title", text: $title)
+                                .bold()
                             
                             TextEditor(text: $text)
                                 .frame(height: 200)
@@ -117,12 +125,12 @@ struct NewProjectReviewView: View {
                         }
                         
                         Button {
-                            //withAnimation {
+                            withAnimation {
                                 numberOfSubreviews += 1
                                 subreviewsTopics.append("")
                                 subreviewsTexts.append("")
                                 subreviewsStars.append(0)
-                            //}
+                            }
                         } label: {
                             Label("Add subreview", systemImage: "plus.app.fill")
                                 .foregroundColor(.black)
@@ -149,13 +157,13 @@ struct NewProjectReviewView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") {
-                        if starcount == 0 || text == "" || subreviewsStars.contains(where: { $0 == 0 }) || subreviewsTopics.contains(where: { $0 == "" }) {
+                        if title.isEmpty || starcount == 0 || text == "" || subreviewsStars.contains(where: { $0 == 0 }) || subreviewsTopics.contains(where: { $0 == "" }) {
                             showAlert.toggle()
                         }
                         
                         else {
                             DispatchQueue.main.async {
-                                addReview()
+                                addReviewToProject()
                             }
                             dismiss()
                         }
@@ -172,36 +180,51 @@ struct NewProjectReviewView: View {
                     }
                 }
             }
-        }*/
+        }
     }
 
-    /*func addReview() {
+    func addReviewToProject() {
         DispatchQueue.main.async {
-            dataManager.addProjectReview(date: Date(), project: project.id!, stars: starcount, text: text, subreviewsStars: subreviewsStars, subreviewsTopics: subreviewsTopics, subreviewsTexts: subreviewsTexts, user: userID) { itWorked, reviewID in
-                if !itWorked {
-                    showErrorPostingNewReviewAlert = true
+            var subreviews: [STARSAPI.SubReviewDataInput] = []
+            
+            for i in 0..<numberOfSubreviews {
+                if subreviewsTexts[i] != "" {
+                    subreviews.append(STARSAPI.SubReviewDataInput(topic: subreviewsTopics[i], stars: subreviewsStars[i], text: .some(subreviewsTexts[i])))
                 }
+                
                 else {
-                    if let reviewID = reviewID {
-                        dataManager.makeReviewPartOfProject(review: reviewID, starcount: starcount, oldStarAverage: project.starAverage, oldReviewsCount: project.reviewsCount, project: project.id!) { itWorked in
-                            if !itWorked {
-                                showErrorPostingNewReviewAlert = true
-                            }
-                            
-                            else {
-                                onReviewAdded?()
-                            }
-                        }
+                    subreviews[i] = STARSAPI.SubReviewDataInput(topic: subreviewsTopics[i], stars: subreviewsStars[i])
+                }
+            }
+            
+            let data: STARSAPI.ReviewDataInput
+            
+            if numberOfSubreviews != 0 {
+                data = STARSAPI.ReviewDataInput(stars: starcount, title: title, text: .some(text), subreviews: .some(subreviews))
+            }
+            
+            else {
+                data = STARSAPI.ReviewDataInput(stars: starcount, title: title, text: .some(text))
+            }
+            
+            Network.shared.apollo.perform(mutation: STARSAPI.AddReviewToProjectMutation(projectId: projectID, data: data)) { result in
+                switch result {
+                case .success(let graphQLResult):
+                    if let errors = graphQLResult.errors {
+                        print("Error sending message: \(errors)")
                     }
+                    else {
+                        onReviewAdded?()
+                    }
+                    
+                case .failure(let error):
+                    print("Network error sending message: \(error)")
                 }
             }
         }
-    }*/
+    }
 }
 
 #Preview {
-    /*@Previewable @EnvironmentObject var dataManager: DataManager
-    @Previewable @State var b: Bool = false
-    NewProjectReviewView(project: $dataManager.projects.first!, showErrorPostingNewReviewAlert: $b)
-        .environmentObject(DataManager())*/
+    //NewProjectReviewView(project: $dataManager.projects.first!, showErrorPostingNewReviewAlert: $b)
 }

@@ -23,7 +23,7 @@ struct SearchView1: View {
     /*@Environment(\.isSearching) private var isSearching
     @Binding var searchText: String
     
-    @EnvironmentObject var dataManager: DataManager
+     
     @AppStorage("userID") var userID: String = ""
     
     @State private var showPopup = false
@@ -250,7 +250,7 @@ struct SearchView1: View {
 
 #Preview {
     /*SearchView()
-        .environmentObject(DataManager())
+         
         .onAppear {
             UserDefaults.standard.set(true, forKey: "userIsLoggedIn")
             UserDefaults.standard.set("AX7ztju3UBWYsTXCXfFsYFCcJSl2", forKey: "userID")

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct PodcastHostsView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     let podcast: Podcast
     var linkToHosts = false
     @State private var artists: [Artist] = []*/
@@ -47,5 +47,5 @@ struct PodcastHostsView: View {
 
 #Preview {
     /*PodcastHostsView(podcast: Podcast(id: "", title: "", by: "", hosts: [], since: Date(), covers: [], website: "", reviews: [], reviewsCount: 0, starAverage: 0, sequels: [], isFeatured: false))
-        .environmentObject(DataManager())*/
+         */
 }

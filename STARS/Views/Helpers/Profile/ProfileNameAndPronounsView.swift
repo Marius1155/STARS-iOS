@@ -10,13 +10,22 @@ import SwiftUI
 struct ProfileNameAndPronounsView: View {
     @Environment(\.colorScheme) var colorScheme
     
-    var name: String
+    var displayName: String
+    var username: String
     var pronouns: String
     
     var body: some View {
         HStack(spacing: 0) {
-            if name != "" {
-                Text(name)
+            if displayName != "" {
+                Text(displayName)
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                    .font(.headline)
+                    .bold()
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            else {
+                Text("@\(username)")
                     .foregroundColor(colorScheme == .dark ? .white : .black)
                     .font(.headline)
                     .bold()
@@ -38,5 +47,5 @@ struct ProfileNameAndPronounsView: View {
 }
 
 #Preview {
-    ProfileNameAndPronounsView(name: "Andra", pronouns: "She/He")
+    ProfileNameAndPronounsView(displayName: "Andra", username: "@andra", pronouns: "She/He")
 }

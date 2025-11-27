@@ -5,147 +5,252 @@
 //  Created by Marius Gabriel Budăi on 08.12.2024.
 //
 
+import Foundation
 import SwiftUI
+import Combine
+import STARSAPI
+import Apollo
 import SDWebImageSwiftUI
 
+// This ViewModel will be the "brain" for your ConversationView
+@MainActor
+class MessagesViewModel: ObservableObject {
+    // MARK: - Published Properties
+    @Published var conversations: [ConversationFragment] = []
+    
+    // MARK: - Properties
+    private var subscription: Apollo.Cancellable?
+    @AppStorage("userID") private var userID: String = ""
+    
+    private var pageSize = 20
+    private var nextCursor: String? = nil
+    @Published var hasNextPageOlder = false
+
+    deinit {
+        subscription?.cancel()
+    }
+    
+    // MARK: - Public Methods
+    
+    func cancelSubscription() {
+        subscription?.cancel()
+    }
+    
+    func fetchInitialData() {
+        let query = STARSAPI.GetUserConversationsQuery(
+            userID: self.userID,
+            last: .some(pageSize),
+            before: nil
+        )
+        
+        Network.shared.apollo.fetch(query: query, cachePolicy: .fetchIgnoringCacheData) { result in
+            switch result {
+            case .success(let graphQLResult):
+                if let user = graphQLResult.data?.users.edges.first?.node {
+                    // Find the other participant in the conversation
+                    self.conversations = user.conversations.edges.compactMap { $0.node.fragments.conversationFragment }
+                    
+                    self.nextCursor = user.conversations.pageInfo.startCursor
+                    
+                    self.hasNextPageOlder = user.conversations.pageInfo.hasPreviousPage
+                    
+                    self.startSubscription()
+                }
+            case .failure(let error):
+                print("Error fetching conversations: \(error)")
+            }
+        }
+    }
+    
+    func loadOlderConversations() {
+        guard let nextCursor = self.nextCursor else { return }
+        
+        let query = STARSAPI.GetUserConversationsQuery(
+            userID: self.userID,
+            last: .some(pageSize),
+            before: .some(nextCursor)
+        )
+                
+        Network.shared.apollo.fetch(query: query, cachePolicy: .fetchIgnoringCacheData) { result in
+            switch result {
+            case .success(let graphQLResult):
+                if let user = graphQLResult.data?.users.edges.first?.node {
+                    // Find the other participant in the conversation
+                    let newConversations = user.conversations.edges.compactMap { $0.node.fragments.conversationFragment }
+                    
+                    DispatchQueue.main.async {
+                        self.conversations += newConversations
+                        
+                        self.nextCursor = user.conversations.pageInfo.startCursor
+                        
+                        self.hasNextPageOlder = user.conversations.pageInfo.hasPreviousPage
+                    }
+                }
+                
+            case .failure(let error):
+                print("Error loading older conversations: \(error)")
+            }
+        }
+    }
+    
+    func likeMessage(id: String) {
+        let mutation = STARSAPI.LikeMessageMutation(id: id)
+        Network.shared.apollo.perform(mutation: mutation) { result in
+            switch result {
+            case .success(let graphQLResult):
+                if let message = graphQLResult.data?.likeMessage.message {
+                    print("Server response: \(message)")
+                }
+                if let errors = graphQLResult.errors {
+                    print("GraphQL Error: \(errors)")
+                }
+            case .failure(let error):
+                print("Network Error: \(error)")
+            }
+        }
+    }
+    
+    // MARK: - Private Methods
+    
+    private func startSubscription() {
+        let sub = STARSAPI.ConversationUpdatesSubscription()
+        
+        self.subscription = Network.shared.apollo.subscribe(subscription: sub) { [weak self] result in
+            guard let self = self else { return }
+            
+            switch result {
+            case .success(let graphQLResult):
+                guard let eventData = graphQLResult.data?.conversationUpdates else { return }
+                
+                let conversation = eventData.conversation.fragments.conversationFragment
+                    
+                if conversation.participants.edges.contains(where: {$0.node.id == self.userID}) {
+                    DispatchQueue.main.async {
+                        withAnimation(.bouncy()) {
+                            self.conversations.removeAll { $0.id == conversation.id }
+                            self.conversations.insert(conversation, at: 0)
+                        }
+                    }
+                }
+                
+            case .failure(let error):
+                print("Subscription Error: \(error)")
+            }
+        }
+    }
+}
+
 struct MessagesView: View {
-    @EnvironmentObject var dataManager: DataManager
-    /*@AppStorage("userID") var userID: String = ""
+    @Environment(\.scenePhase) var scenePhase
+    @Environment(\.colorScheme) var colorScheme
     
-    @State private var conversations: [Conversation] = []
-    @State private var userProfiles: [String: Profile] = [:] // Cache for user info
-    @State private var listener: ListenerRegistration?
-    @State private var newestConversationListener: ListenerRegistration?
-    @State private var oldestConversationListener: ListenerRegistration?
     
-    @State private var lastConversation: DocumentSnapshot? = nil
-    @State private var passItOnAsLastConversation: DocumentSnapshot? = nil
+
+    @StateObject private var viewModel: MessagesViewModel
     
-    @State private var newestConversationID: String? = nil
-    @State private var oldestConversationID: String? = nil
+    @AppStorage("userID") var userID: String = ""
     
-    @State private var columnVisibility = NavigationSplitViewVisibility.all*/
+    @State private var columnVisibility = NavigationSplitViewVisibility.all
+    
+    init() {
+        _viewModel = StateObject(wrappedValue: MessagesViewModel())
+    }
     
     var body: some View {
-        NavigationLink {
-            ConversationView(conversationID: "1")
-        } label: {
-            Image(systemName: "message.fill")
-        }
-        .simultaneousGesture(TapGesture().onEnded {
-            if let root = UIApplication.shared.connectedScenes
-                .compactMap({ ($0 as? UIWindowScene)?.keyWindow })
-                .first?.rootViewController as? UITabBarController,
-               let nav = root.selectedViewController as? UINavigationController {
-                
-                let convoVC = UIHostingController(rootView: ConversationView(conversationID: "1"))
-                convoVC.hidesBottomBarWhenPushed = true
-                nav.pushViewController(convoVC, animated: true)
-            }
-        })
-        .onAppear {
-            NotificationCenter.default.post(name: .showTabBar, object: nil)
-            dataManager.shouldShowTabBar = true
-        }
-        /*NavigationSplitView(columnVisibility: $columnVisibility) {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             VStack {
-                if conversations.isEmpty {
-                    Text("Loading...")
+                if viewModel.conversations.isEmpty {
+                    ProgressView()
                 } else {
-                    ScrollView {
-                        if let newestID = newestConversationID, conversations.first?.id != newestID {
-                            Button {
-                                passItOnAsLastConversation = nil
-                            } label: {
-                                Image(systemName: "chevron.up.2")
-                                    .padding(10)
-                                    .background {
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .foregroundColor(.gray.opacity(0.1))
-                                    }
-                            }
-                            .padding()
-                        }
-                        // Filter conversations based on the search query
-                        ForEach(conversations, id: \.id) { conversation in
-                            let otherUserID = conversation.userA == userID ? conversation.userB : conversation.userA
-                            let userProfile = userProfiles[otherUserID]
-                            
-                            NavigationLink {
-                                ConversationView(conversationID: conversation.id!, otherUserID: otherUserID)
-                            } label: {
-                                HStack {
-                                    if let profile = userProfile {
-                                        if profile.profilePicture == "" {
-                                            Image(systemName: "person.circle")
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(width: 64, height: 64)
-                                                .clipShape(Circle())
+                    ScrollViewReader{ scrollViewProxy in
+                        ScrollView {
+                            LazyVStack {
+                                if viewModel.hasNextPageOlder {
+                                    ProgressView()
+                                        .onAppear {
+                                            viewModel.loadOlderConversations()
                                         }
-                                        else {
-                                            WebImage(url: URL(string: profile.profilePicture))
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(width: 64, height: 64)
-                                                .clipShape(Circle())
-                                        }
-                                        
-                                        VStack(alignment: .leading) {
-                                            ProfileNameAndPronounsView(name: profile.name, pronouns: profile.pronouns)
-                                            
-                                            HStack {
-                                                Text(conversation.latestMessageSender == userID ? "You: " + conversation.latestMessageText : conversation.latestMessageText)
-                                                    .font(.subheadline)
-                                                    .foregroundColor(.gray)
-                                                    .lineLimit(1)
-                                                    .truncationMode(.tail)
-                                                
-                                                Text("•")
-                                                    .font(.subheadline)
-                                                    .foregroundColor(.gray)
-                                                
-                                                Text(formatDate(conversation.latestMessageTime))
-                                                    .font(.subheadline)
-                                                    .foregroundColor(.gray)
+                                }
+                                // Filter conversations based on the search query
+                                ForEach(viewModel.conversations, id: \.id) { conversation in
+                                    NavigationLink {
+                                        ConversationView(conversationID: conversation.id)
+                                    } label: {
+                                        HStack {
+                                            let personYouAreTalkingTo = conversation.participants.edges.first(where: { $0.node.id != userID })!.node
+                                            if personYouAreTalkingTo.profile.profilePicture == "" || personYouAreTalkingTo.profile.profilePicture == nil {
+                                                Image(systemName: "person.circle")
+                                                    .resizable()
+                                                    .scaledToFill()
+                                                    .frame(width: 64, height: 64)
+                                                    .clipShape(Circle())
                                             }
+                                            else {
+                                                WebImage(url: URL(string: (personYouAreTalkingTo.profile.profilePicture)!))
+                                                    .resizable()
+                                                    .scaledToFill()
+                                                    .frame(width: 64, height: 64)
+                                                    .clipShape(Circle())
+                                            }
+                                            
+                                            VStack(alignment: .leading) {
+                                                ProfileNameAndPronounsView(displayName: personYouAreTalkingTo.firstName, username: personYouAreTalkingTo.username, pronouns: personYouAreTalkingTo.profile.pronouns)
+                                                
+                                                if conversation.seenBy.edges.contains(where: { $0.node.id == userID }) {
+                                                    HStack {
+                                                        Text(conversation.latestMessageSender?.id == userID ? "You: " + conversation.latestMessageText : conversation.latestMessageText)
+                                                            .font(.subheadline)
+                                                            .foregroundColor(.gray)
+                                                            .lineLimit(1)
+                                                            .truncationMode(.tail)
+                                                        
+                                                        Text("•")
+                                                            .font(.subheadline)
+                                                            .foregroundColor(.gray)
+                                                        
+                                                        Text(formatDate(date(from: conversation.latestMessageTime!) ?? Foundation.Date()))
+                                                            .font(.subheadline)
+                                                            .foregroundColor(.gray)
+                                                    }
+                                                }
+                                                
+                                                else {
+                                                    HStack {
+                                                        Text(conversation.latestMessageSender?.id == userID ? "You: " + conversation.latestMessageText : conversation.latestMessageText)
+                                                            .font(.subheadline)
+                                                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                                                            .bold()
+                                                            .lineLimit(1)
+                                                            .truncationMode(.tail)
+                                                        
+                                                        Text("•")
+                                                            .font(.subheadline)
+                                                            .foregroundColor(.gray)
+                                                        
+                                                        Text(formatDate(date(from: conversation.latestMessageTime!) ?? Foundation.Date()))
+                                                            .font(.subheadline)
+                                                            .foregroundColor(.gray)
+                                                    }
+                                                }
+                                            }
+                                            
+                                            Spacer()
                                         }
-                                    } else {
-                                        ProgressView() // Show a loading indicator while fetching user data
                                     }
-                                    Spacer()
-                                }
-                                .onAppear {
-                                    fetchUserProfile(userID: otherUserID)
+                                    
+                                    Divider()
                                 }
                             }
-                            
-                            Divider()
                         }
-                        
-                        if let oldestID = oldestConversationID, conversations.last?.id != oldestID {
-                            Button {
-                                passItOnAsLastConversation = lastConversation
-                            } label: {
-                                Image(systemName: "chevron.down")
-                                    .padding(10)
-                                    .background {
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .foregroundColor(.gray.opacity(0.1))
-                                    }
-                            }
-                            .padding()
-                        }
-                        
+                        .padding()
                     }
-                    .padding()
                 }
             }
             .navigationTitle("Messages")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        // Add new conversation action
+                        newConversation()
                     } label: {
                         Image(systemName: "plus")
                             .bold()
@@ -153,71 +258,46 @@ struct MessagesView: View {
                 }
             }
             .toolbar(removing: .sidebarToggle)
-            .onChange(of: passItOnAsLastConversation) { oldValue, newValue in
-                // Trigger your listener again when passItOnAsLastConversation changes
-                listener?.remove()  // Remove old listener (to avoid duplication)
-                listener = dataManager.listenForConversations(userID: userID, lastConversation: newValue) { updatedConversations, newLastConversation in
-                    conversations = updatedConversations
-                    lastConversation = newLastConversation
-                }
-            }
-            .onAppear {
-                DispatchQueue.main.async {
-                    newestConversationListener = dataManager.getIDOfTheNewestConversation(userID: userID){ id1 in
-                        newestConversationID = id1
-                    }
-                    
-                    oldestConversationListener = dataManager.getIDOfTheOldestConversation(userID: userID) { id2 in
-                        oldestConversationID = id2
-                    }
-                    
-                    listener = dataManager.listenForConversations(userID: userID, lastConversation: passItOnAsLastConversation) { updatedConversations, newLastConversation in
-                        conversations = updatedConversations
-                        lastConversation = newLastConversation
-                    }
-                }
-            }
-            .onDisappear {
-                listener?.remove()
-                newestConversationListener?.remove()
-                oldestConversationListener?.remove()
-            }
         } detail: {
             Text("Select a conversation")
         }
         .navigationBarHidden(true)
-        .navigationSplitViewStyle(.balanced)*/
-    }
-    /*
-    // Fetch user profile only if not already cached
-    func fetchUserProfile(userID: String) {
-        if userProfiles[userID] != nil { return } // Already cached, no need to fetch
-        
-        let db = Firestore.firestore()
-        db.collection("Profile").document(userID).getDocument(source: .default) { document, error in
-            guard let data = document?.data(), error == nil else {
-                print("Failed to fetch user profile for \(userID)")
-                return
+        .navigationSplitViewStyle(.balanced)
+        .onAppear {
+            NotificationCenter.default.post(name: .showTabBar, object: nil)
+            DataManager.shared.shouldShowTabBar = true
+            viewModel.fetchInitialData()
+        }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            switch newPhase {
+            case .active:
+                viewModel.fetchInitialData()
+            case .background:
+                print("App went to background")
+                viewModel.cancelSubscription()
+                break
+            case .inactive:
+                viewModel.cancelSubscription()
+                break
+            @unknown default:
+                break
             }
-            
-            let name = data["name"] as? String ?? ""
-            let profilePicture = data["profilePicture"] as? String ?? ""
-            let pronouns = data["pronouns"] as? String ?? ""
-            
-            var profile = Profile.empty()
-            profile.setID(userID)
-            profile.setProfilePicture(profilePicture)
-            profile.setName(name)
-            profile.setPronouns(pronouns)
-            
-            // Store in cache
-            userProfiles[userID] = profile
         }
     }
     
-    func formatDate(_ date: Date) -> String {
+    func newConversation() {
+        
+    }
+    
+    private func date(from string: String) -> Foundation.Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.date(from: string)
+    }
+    
+    func formatDate(_ date: Foundation.Date) -> String {
         let calendar = Calendar.current
-        let now = Date()
+        let now = Foundation.Date()
         
         // Check if it's today
         if calendar.isDateInToday(date) {
@@ -238,10 +318,9 @@ struct MessagesView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd MMM" // Day and month
         return formatter.string(from: date)
-    }*/
+    }
 }
 
 #Preview {
-    /*MessagesView()
-        .environmentObject(DataManager())*/
+    MessagesView()
 }

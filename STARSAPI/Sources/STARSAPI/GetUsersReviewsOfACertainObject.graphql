@@ -1,0 +1,22 @@
+#import "ReviewFragment.graphql"
+
+query GetUsersReviewsOfACertainObject(
+    $objectId: Int!,
+    $contentType: String!,
+    $userID: ID!) {
+        users(filters: { id: { exact: $userID } }) {
+            edges {
+                node {
+                    reviews(filters: { objectId: { exact: $objectId }, contentType: { model: { exact: $contentType } } }
+                        order: { dateCreated: ASC }
+                    ) {
+                        edges {
+                            node {
+                                ...ReviewFragment
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }

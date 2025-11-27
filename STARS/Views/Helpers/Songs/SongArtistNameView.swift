@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SongArtistNameView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     let song: Song
     var linkToArtists = false
     @State private var artists: [Artist] = []*/
@@ -44,7 +44,7 @@ struct SongArtistNameView: View {
 }
 
 #Preview {
-    /*@Previewable @EnvironmentObject var dataManager: DataManager
+    /*@Previewable  
     SongArtistNameView(song: dataManager.songs.first!)
-        .environmentObject(DataManager())*/
+         */
 }

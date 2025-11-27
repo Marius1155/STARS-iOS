@@ -9,7 +9,7 @@ import SwiftUI
 import SDWebImageSwiftUI
 
 struct SongDetailView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     var song: Song*/
     var body: some View {
         /*HStack {
@@ -24,7 +24,7 @@ struct SongDetailView: View {
 }
 
 #Preview {
-    /*@Previewable @EnvironmentObject var dataManager: DataManager
+    /*@Previewable  
     SongDetailView(song: dataManager.songs.first!)
-        .environmentObject(DataManager())*/
+         */
 }

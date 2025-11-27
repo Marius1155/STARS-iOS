@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct NewProjectCoverView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     
     @State private var image = ""
     
@@ -52,5 +52,5 @@ struct NewProjectCoverView: View {
 
 #Preview {
     /*NewProjectCoverView()
-        .environmentObject(DataManager())*/
+         */
 }

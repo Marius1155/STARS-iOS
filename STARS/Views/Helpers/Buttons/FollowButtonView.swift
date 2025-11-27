@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct FollowButtonView: View {
-    /*@EnvironmentObject var dataManager: DataManager
+    /* 
     
     var userToFollowID: String
     
@@ -71,7 +71,7 @@ struct FollowButtonView: View {
 
 #Preview {
     /*FollowButtonView(userToFollowID: "PuAHWOG22FdfzyBqgxb69Xxmbat2")
-        .environmentObject(DataManager())
+         
         .onAppear {
             UserDefaults.standard.set("AX7ztju3UBWYsTXCXfFsYFCcJSl2", forKey: "userID")
         }*/

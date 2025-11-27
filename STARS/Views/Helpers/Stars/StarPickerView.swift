@@ -55,5 +55,4 @@ struct StarPickerView: View {
 
 #Preview {
     StarPickerView(rating: .constant(2))
-        .environmentObject(DataManager())
 }
