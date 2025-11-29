@@ -56,12 +56,21 @@ struct SearchAppleMusicAlbumsView: View {
             }
         }
         .searchable(text: $searchText, prompt: "Search albums")
-        .onChange(of: searchText) { oldValue, newValue in
-            guard newValue.count > 1 else {
+        .task(id: searchText) {
+            if searchText.isEmpty {
                 albums.removeAll()
                 return
             }
-            fetchAlbums(term: newValue)
+            
+            // 1. Debounce: Wait 250ms. If a new key is pressed, this task will be cancelled and a new one started.
+            do {
+                try await Task.sleep(for: .milliseconds(250))
+            } catch {
+                return // Task was cancelled (new input received)
+            }
+            
+            // 2. Perform the API call with the debounced text
+            fetchAlbums(term: searchText)
         }
     }
     
