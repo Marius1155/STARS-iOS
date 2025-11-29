@@ -1,0 +1,15 @@
+query GetAppleMusicArtistTopSongs($artistId: String!) {
+  getAppleMusicArtistTopSongs(artistId: $artistId) {
+    id
+    name
+    releaseDate
+    
+    artists {
+      name
+      id
+    }
+      
+    lengthMs
+    previewUrl
+  }
+}

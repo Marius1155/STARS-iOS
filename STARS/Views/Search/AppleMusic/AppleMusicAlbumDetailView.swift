@@ -16,7 +16,6 @@ struct AppleMusicAlbumDetailView: View {
     
     // MARK: Sheet/Search State
     @State private var artistsSearchResults: [STARSAPI.SearchForAppleMusicArtistsQuery.Data.SearchAppleMusicArtist] = []
-    @State private var artistsKeptForDisplay: [STARSAPI.SearchForAppleMusicArtistsQuery.Data.SearchAppleMusicArtist] = []
     @State private var alertMessage: String? = nil
     
     // Tracks the context of what the user is currently selecting for the sheet
@@ -70,7 +69,7 @@ struct AppleMusicAlbumDetailView: View {
                                 Divider()
                                     .foregroundStyle((Color(hex: String("#\(album.bgColor)")) ?? .gray).secondaryTextGray())
                                 
-                                // Simplified: Just display the main artists
+                                // Display the main artists (no user selection here as agreed)
                                 ForEach(album.artists, id: \.id) { artist in
                                     Text(artist.name)
                                 }
@@ -123,7 +122,7 @@ struct AppleMusicAlbumDetailView: View {
                                 }
                             }
                             
-                            // MARK: Feature Resolution Dropdown (New)
+                            // MARK: Feature Resolution Dropdown
                             if expandedSongID == song.id {
                                 featureResolutionDropdown(song: song)
                             }
@@ -154,10 +153,10 @@ struct AppleMusicAlbumDetailView: View {
                 ) {
                     ArtistSelectionSheet(
                         artistsSearchResults: $artistsSearchResults,
-                        artistsKeptForDisplay: $artistsKeptForDisplay,
                         sheetSelectionContext: $sheetSelectionContext,
                         songFeaturesToResolve: $songFeaturesToResolve,
-                        fetchAppleMusicArtists: fetchAppleMusicArtists // Passed for sheet's internal search
+                        fetchAppleMusicArtists: fetchAppleMusicArtists,
+                        fetchArtistTopSongs: fetchArtistTopSongs
                     )
                 }
             }
@@ -171,12 +170,12 @@ struct AppleMusicAlbumDetailView: View {
         }
     }
     
-    // MARK: Helper Functions
+    // MARK: Helper Views
     
     // NEW HELPER: Retrieves the artist's name from the currently available search results.
     func featuredArtistName(for artistID: String?) -> String? {
         guard let id = artistID else { return nil }
-        return artistsKeptForDisplay.first(where: { $0.id == id })?.name
+        return artistsSearchResults.first(where: { $0.id == id })?.name
     }
     
     @ViewBuilder
@@ -219,7 +218,6 @@ struct AppleMusicAlbumDetailView: View {
                     let isResolved = selectedArtistID != nil
                     
                     HStack {
-                        // FIX: Use the new helper to display the name
                         if let artistName = featuredArtistName(for: selectedArtistID) {
                             Text("Feature \(featureIndex + 1): \(artistName)")
                                 .lineLimit(1)
@@ -261,7 +259,7 @@ struct AppleMusicAlbumDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
     
-    // ... (rest of the API and utility functions)
+    // MARK: API Functions
     
     func formattedArtworkUrl(from template: String, width: Int = 600, height: Int = 600) -> String {
         return template
@@ -319,6 +317,25 @@ struct AppleMusicAlbumDetailView: View {
             }
         }
     }
+    
+    // NEW: Function to fetch top songs for an artist
+    func fetchArtistTopSongs(artistID: String) async -> [STARSAPI.GetAppleMusicArtistTopSongsQuery.Data.GetAppleMusicArtistTopSong] {
+        let query = STARSAPI.GetAppleMusicArtistTopSongsQuery(artistId: artistID)
+        
+        return await withCheckedContinuation { continuation in
+            Network.shared.apollo.fetch(query: query) { result in
+                switch result {
+                case .success(let graphQLResult):
+                    // The return type is correctly inferred here, but the function signature must match!
+                    let songs = graphQLResult.data?.getAppleMusicArtistTopSongs ?? []
+                    continuation.resume(returning: songs)
+                case .failure(let error):
+                    print("Error fetching artist top songs: \(error)")
+                    continuation.resume(returning: [])
+                }
+            }
+        }
+    }
 }
 
 // MARK: - ArtistSelectionSheet
@@ -326,15 +343,20 @@ struct AppleMusicAlbumDetailView: View {
 struct ArtistSelectionSheet: View {
     
     @Binding var artistsSearchResults: [STARSAPI.SearchForAppleMusicArtistsQuery.Data.SearchAppleMusicArtist]
-    @Binding var artistsKeptForDisplay: [STARSAPI.SearchForAppleMusicArtistsQuery.Data.SearchAppleMusicArtist]
     // Simplified context: (songId, featureIndex)
     @Binding var sheetSelectionContext: (id: String, featureIndex: Int)?
     
     @Binding var songFeaturesToResolve: [String: [String?]]
     
     let fetchAppleMusicArtists: (String) -> Void
+    // New dependency: fetchArtistTopSongs from parent view
+    let fetchArtistTopSongs: (String) async -> [STARSAPI.GetAppleMusicArtistTopSongsQuery.Data.GetAppleMusicArtistTopSong]
     
     @State private var searchText: String = ""
+    
+    // NEW STATE: Tracks which artist's song list is expanded and stores the fetched songs
+    @State private var expandedArtistID: String? = nil
+    @State private var artistTopSongs: [String: [STARSAPI.GetAppleMusicArtistTopSongsQuery.Data.GetAppleMusicArtistTopSong]] = [:]
     
     var body: some View {
         VStack {
@@ -352,7 +374,7 @@ struct ArtistSelectionSheet: View {
                 
                 HStack(spacing: 4) {
                     Text("Select Featured Artist")
-                    
+                        
                     Image("AppleMusicIcon")
                         .resizable()
                         .frame(width: 22, height: 22)
@@ -370,53 +392,115 @@ struct ArtistSelectionSheet: View {
                 .padding()
             }
             
-            // Search Bar
+            // Search Bar (with search-as-you-type logic in .task below)
             TextField("Search Apple Music...", text: $searchText)
-                .textFieldStyle(.roundedBorder)
-                .padding(.horizontal)
+            .textFieldStyle(.roundedBorder)
+            .padding(.horizontal)
             
             ScrollView {
                 LazyVGrid(columns: [
                     GridItem(.flexible(), spacing: 16),
                     GridItem(.flexible(), spacing: 16)
                 ], spacing: 24) {
+                    
+                    // NEW: Iterate through results and allow expansion
+                    // Group the content for the grid system
                     ForEach(artistsSearchResults, id: \.id) { artist in
-                        VStack {
-                            if artist.imageUrl.isEmpty {
-                                Image(systemName: "person.circle")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 128, height: 128)
-                                    .clipShape(Circle())
-                                    .shadow(radius: 2)
-                            }
-                            else {
-                                let url = formattedArtworkUrl(from: artist.imageUrl, width: 300, height: 300)
-                                
-                                WebImage(url: URL(string: url))
-                                    .resizable()
-                                    .frame(width: 128, height: 128)
-                                    .clipShape(Circle())
-                            }
-                            
-                            Text(artist.name)
-                                .font(.headline)
-                                .multilineTextAlignment(.center)
-                                .frame(maxWidth: .infinity)
-                        }
-                        .padding(.vertical, 8)
-                        .background(
-                            Group {
-                                if isArtistSelected(artistID: artist.id) {
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(Color.accentColor.opacity(0.6))
-                                } else {
-                                    Color.clear
+                        VStack(alignment: .leading) {
+                            HStack(alignment: .top) {
+                                VStack {
+                                    if artist.imageUrl.isEmpty {
+                                        Image(systemName: "person.circle")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 128, height: 128)
+                                            .clipShape(Circle())
+                                            .shadow(radius: 2)
+                                    }
+                                    else {
+                                        let url = formattedArtworkUrl(from: artist.imageUrl, width: 300, height: 300)
+                                        
+                                        WebImage(url: URL(string: url))
+                                            .resizable()
+                                            .frame(width: 128, height: 128)
+                                            .clipShape(Circle())
+                                    }
+                                    
+                                    Text(artist.name)
+                                        .font(.headline)
+                                        .multilineTextAlignment(.center)
+                                        .frame(maxWidth: .infinity)
                                 }
+                                .padding(.vertical, 8)
+                                .background(
+                                    Group {
+                                        if isArtistSelected(artistID: artist.id) {
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .fill(Color.accentColor.opacity(0.6))
+                                        } else {
+                                            Color.clear
+                                        }
+                                    }
+                                )
+                                .onTapGesture {
+                                    handleArtistSelection(selectedArtist: artist)
+                                }
+                                
+                                Spacer()
+
+                                // NEW: Expansion button
+                                Button {
+                                    // Close if already open
+                                    if expandedArtistID == artist.id {
+                                        expandedArtistID = nil
+                                        artistTopSongs[artist.id] = nil // Clear songs on close
+                                    } else {
+                                        // Open and fetch songs
+                                        expandedArtistID = artist.id
+                                        // Only fetch if not already in cache
+                                        if artistTopSongs[artist.id] == nil {
+                                            artistTopSongs[artist.id] = [] // Set empty array to show ProgressView
+                                            Task {
+                                                let songs = await fetchArtistTopSongs(artist.id)
+                                                artistTopSongs[artist.id] = songs
+                                            }
+                                        }
+                                    }
+                                } label: {
+                                    Image(systemName: expandedArtistID == artist.id ? "chevron.up" : "chevron.down")
+                                }
+                                .padding(.top, 10)
                             }
-                        )
-                        .onTapGesture {
-                            handleArtistSelection(selectedArtist: artist)
+                            .frame(maxWidth: .infinity, alignment: .leading) // Ensure the HStack takes full width
+                            
+                            // NEW: Expandable Song List
+                            if expandedArtistID == artist.id {
+                                VStack(alignment: .leading) {
+                                    Text("Top Songs:")
+                                        .font(.subheadline)
+                                        .bold()
+                                        .padding(.vertical, 5)
+                                    
+                                    if let songs = artistTopSongs[artist.id], !songs.isEmpty {
+                                        ForEach(songs.prefix(10), id: \.id) { song in
+                                            Text(song.name)
+                                                .font(.caption)
+                                                .lineLimit(1)
+                                        }
+                                    } else if artistTopSongs[artist.id]?.isEmpty == true { // Check if array is empty (no songs)
+                                        Text("No top songs available.")
+                                            .font(.caption)
+                                    } else {
+                                        ProgressView()
+                                    }
+                                }
+                                .padding(8)
+                                // We cannot reliably span two columns in a LazyVGrid like this without custom layout or just a single-column ScrollView.
+                                // For simplicity and working with LazyVGrid, we'll keep it simple for now or use a fixed width if necessary.
+                                // Given the existing two-column setup, we'll revert to a basic VStack for the song list display in the current cell.
+                                .background(Color.gray.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 5))
+                            }
                         }
                     }
                 }
@@ -424,11 +508,11 @@ struct ArtistSelectionSheet: View {
             }
         }
         // 🧩 Limit sheet height
-        .presentationDetents([.medium])
+        .presentationDetents([.medium]) // Fixed to medium height
         .presentationDragIndicator(.hidden)
         .interactiveDismissDisabled(true)
-        // FIX: Pre-populate search bar if an artist is already selected
         .onAppear {
+            // Pre-fill the search bar based on current selection
             guard let context = sheetSelectionContext else { return }
             
             let selectedArtistID = songFeaturesToResolve[context.id]?[context.featureIndex]
@@ -436,19 +520,22 @@ struct ArtistSelectionSheet: View {
             if let artistID = selectedArtistID,
                let selectedArtist = artistsSearchResults.first(where: { $0.id == artistID }) {
                 
-                // Set the search bar text to the name of the selected artist
                 searchText = selectedArtist.name
             }
         }
+        // MARK: Debounce Logic using .task(id:)
         .task(id: searchText) {
-            if searchText.isEmpty {
-                artistsSearchResults.removeAll() // Clear results if search is empty
+            // Only perform search if the text has at least 2 characters and is not just the pre-loaded name
+            guard searchText.count > 2 else {
+                if searchText.isEmpty {
+                    artistsSearchResults = [] // Clear results if search is empty
+                }
                 return
             }
             
-            // 1. Debounce: Wait 250ms. If a new key is pressed, this task will be cancelled and a new one started.
+            // 1. Debounce: Wait 500ms. If a new key is pressed, this task will be cancelled and a new one started.
             do {
-                try await Task.sleep(for: .milliseconds(250))
+                try await Task.sleep(for: .milliseconds(500))
             } catch {
                 return // Task was cancelled (new input received)
             }
@@ -487,22 +574,11 @@ struct ArtistSelectionSheet: View {
         let selectedArtistAppleMusicID = selectedArtist.id
         
         if features.indices.contains(featureIndex) {
-            for feature in features {
-                if let featureNotNil = feature {
-                    print(featureNotNil)
-                }
-                else {
-                    print("This one's nil")
-                }
-            }
             // Toggle selection
             if features[featureIndex] == selectedArtistAppleMusicID {
                 features[featureIndex] = nil // Deselect
             } else {
                 features[featureIndex] = selectedArtistAppleMusicID // Select
-                if !artistsKeptForDisplay.contains(selectedArtist) {
-                    artistsKeptForDisplay.append(selectedArtist)
-                }
             }
             songFeaturesToResolve[songID] = features
         }
