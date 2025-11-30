@@ -1,0 +1,29 @@
+query GetArtistsProjects($artistAppleMusicId: String!) {
+  artists(filters: {appleMusicId: {exact: $artistAppleMusicId}}) {
+    edges {
+      node {
+        projectArtists {
+          edges {
+            node {
+              project {
+                id
+                title
+                releaseDate
+                appleMusicId
+                covers {
+                  edges {
+                    node {
+                      image
+                      primaryColor
+                      secondaryColor
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
