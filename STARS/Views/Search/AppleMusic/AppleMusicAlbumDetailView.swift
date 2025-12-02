@@ -43,7 +43,7 @@ struct AppleMusicAlbumDetailView: View {
     // We store the specific project node type from the query
     @State private var availableAlternativeVersions: [STARSAPI.GetArtistsProjectsQuery.Data.Artists.Edge.Node.ProjectArtists.Edge.Node.Project] = []
     // Store the IDs of the selected projects
-    @State private var selectedAlternativeVersionIDs: Set<String> = []
+    @State private var selectedAlternativeVersionIDs: Set<String?> = []
 
     
     var body: some View {
@@ -63,12 +63,14 @@ struct AppleMusicAlbumDetailView: View {
                         .bold()
                         .multilineTextAlignment(.center)
                         .padding(.top, 10)
+                        .padding(.horizontal)
                     
                     // Display the main artists formatted as a single string
                     Text(formatMainArtists(album.artists.map { $0.name }))
                         .font(.title3)
                         .foregroundStyle(.gray)
-                        .multilineTextAlignment(.center) // Enables multiline centering
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
                     
                     if let date = stringToDate(album.releaseDate) {
                         let filteredGenres = album.genreNames.filter { $0 != "Music" }
@@ -111,12 +113,21 @@ struct AppleMusicAlbumDetailView: View {
                             VStack(alignment: .leading) {
                                 Text("Alternative Versions")
                                     .bold()
-                                if !selectedAlternativeVersionIDs.isEmpty {
-                                    Text("\(selectedAlternativeVersionIDs.count) selected")
+                                if album.isSingle {
+                                    Text("Not available for singles, but it's still here for design consistency :))))")
+                                        .multilineTextAlignment(.leading)
+                                        .font(.caption)
+                                        .opacity(0.8)
+                                } else if selectedAlternativeVersionIDs.isEmpty {
+                                    Text("No alternative versions")
+                                        .font(.caption)
+                                        .opacity(0.8)
+                                } else if selectedAlternativeVersionIDs.contains(nil) {
+                                    Text("Make a selection")
                                         .font(.caption)
                                         .opacity(0.8)
                                 } else {
-                                    Text("None selected")
+                                    Text("\(selectedAlternativeVersionIDs.count) selected")
                                         .font(.caption)
                                         .opacity(0.8)
                                 }
@@ -132,6 +143,7 @@ struct AppleMusicAlbumDetailView: View {
                         .background(Color.gray.opacity(0.15))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
+                    .disabled(album.isSingle)
                     .padding(.horizontal)
                     .padding(.bottom, 10)
                     
@@ -188,7 +200,9 @@ struct AppleMusicAlbumDetailView: View {
                     .padding(.horizontal)
                     
                     Button {
-                        
+                        if songFeaturesToResolve.values.contains { $0.contains(nil) } || appleMusicSongsCorrespondentsFromSTARSdb.values.contains { $0 == "" } || (selectedAlternativeVersionIDs.contains(nil) && !album.isSingle) {
+                            alertMessage = "Incomplete information!"
+                        }
                     } label: {
                         HStack {
                             Spacer()
@@ -446,6 +460,7 @@ struct AppleMusicAlbumDetailView: View {
                         for song in fetchedAlbum.songs {
                             self.songFeaturesToResolve[song.id] = []
                             self.appleMusicSongsCorrespondentsFromSTARSdb[song.id] = ""
+                            self.selectedAlternativeVersionIDs.insert(nil)
                         }
                         
                         self.album = fetchedAlbum
@@ -594,7 +609,7 @@ struct AlternativeVersionsSheet: View {
     var albumID: String
     @Binding var availableProjects: [STARSAPI.GetArtistsProjectsQuery.Data.Artists.Edge.Node.ProjectArtists.Edge.Node.Project]
     // The set of IDs selected by the user
-    @Binding var selectedIDs: Set<String>
+    @Binding var selectedIDs: Set<String?>
     @Binding var isLoading: Bool
     
     // MARK: Search State
@@ -613,20 +628,11 @@ struct AlternativeVersionsSheet: View {
         VStack {
             // Header
             HStack {
-                Button {
-                    // Cancel/Close
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.clear) // Hidden but keeps spacing
-                }
-                .padding()
-                
-                Spacer()
-                
                 Text("Alternative Versions (from the STARS database)")
-                    .font(.headline)
+                    .font(.title3)
+                    .multilineTextAlignment(.leading)
+                    .bold()
+                    .padding()
                 
                 Spacer()
                 
@@ -663,7 +669,7 @@ struct AlternativeVersionsSheet: View {
                                 .foregroundColor(selectedIDs.isEmpty ? .accentColor : .gray)
                                 .font(.title3)
                             
-                            Text("No Alternative Versions")
+                            Text("No alternative versions")
                                 .font(.body)
                                 .padding(.leading, 8)
                             
@@ -729,6 +735,7 @@ struct AlternativeVersionsSheet: View {
                                         if selectedIDs.contains(project.id) {
                                             selectedIDs.remove(project.id)
                                         } else {
+                                            selectedIDs.remove(nil)
                                             selectedIDs.insert(project.id)
                                         }
                                     }
@@ -776,21 +783,12 @@ struct ArtistSelectionSheet: View {
     var body: some View {
         VStack {
             HStack {
-                Button {
-                    
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.clear)
-                }
-                .padding()
-                
-                Spacer()
-                
                 HStack(spacing: 4) {
                     Text("Select Featured Artist")
                         .font(.title3)
+                        .multilineTextAlignment(.leading)
                         .bold()
+                        .padding([.leading, .vertical])
                         
                     Image("AppleMusicIcon")
                         .resizable()
@@ -1001,6 +999,7 @@ struct TopSongsDetailSheet: View {
             HStack {
                 Text("Top 10 Songs for \(artistName)")
                     .font(.title3)
+                    .multilineTextAlignment(.leading)
                     .bold()
                 
                 Spacer()
@@ -1012,7 +1011,6 @@ struct TopSongsDetailSheet: View {
                         .font(.title2)
                         .foregroundColor(.secondary)
                 }
-                .padding()
             }
 
             Divider()
@@ -1083,21 +1081,11 @@ struct SongDeduplicationSheet: View {
     @Binding var songsAreBeingFetchedForDeduplication: Bool
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 15) {
+        VStack(alignment: .leading) {
             HStack {
-                Button {
-                    
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.clear)
-                }
-                .padding()
-                
-                Spacer()
-                
                 Text("Deduplicate: \(appleMusicSong?.name ?? "Unknown Song")")
                     .font(.title3)
+                    .multilineTextAlignment(.leading)
                     .bold()
                 
                 Spacer()
@@ -1110,7 +1098,6 @@ struct SongDeduplicationSheet: View {
                         .font(.title2)
                         .foregroundColor(.secondary)
                 }
-                .padding()
             }
             
             Divider()
@@ -1126,8 +1113,8 @@ struct SongDeduplicationSheet: View {
                     HStack {
                         Image(systemName: appleMusicSongsCorrespondentsFromSTARSdb[appleMusicSong?.id ?? ""] == nil ? "largecircle.fill.circle" : "circle")
                             .foregroundColor(appleMusicSongsCorrespondentsFromSTARSdb[appleMusicSong?.id ?? ""] == nil ? .accentColor : .gray)
-                        Text("Song does not exist in STARS (Create New)")
-                            .font(.headline)
+                        Text("Song does not exist in the STARS database (Create New)")
+                            .font(.body)
                             .padding(.vertical, 8)
                         Spacer()
                     }
@@ -1141,12 +1128,24 @@ struct SongDeduplicationSheet: View {
                     
                     // 2. List of existing songs from DB
                     if duplicateSongsResults.isEmpty && songsAreBeingFetchedForDeduplication {
-                        ProgressView("Looking for songs in the STARS database...")
-                            .padding()
+                            Spacer()
+                            
+                            ProgressView("Looking for songs in the STARS database...")
+                                .font(.subheadline)
+                                .multilineTextAlignment(.center)
+                                .padding()
+                            
+                            Spacer()
                     }
                     else if duplicateSongsResults.isEmpty && !songsAreBeingFetchedForDeduplication{
-                        Text("No songs matching the selected song found in the STARS database.")
-                            .padding()
+                            Spacer()
+                            
+                            Text("No songs matching the selected song found in the STARS database.")
+                                .font(.subheadline)
+                                .multilineTextAlignment(.center)
+                                .padding()
+                            
+                            Spacer()
                     }
                     else {
                         ForEach($duplicateSongsResults, id: \.id) { $song in
@@ -1188,53 +1187,6 @@ struct SongDeduplicationSheet: View {
         .presentationDetents([.medium])
         .presentationDragIndicator(.hidden)
         .interactiveDismissDisabled(true)
-    }
-}
-
-import Foundation
-
-extension String {
-    /**
-     Cleans a song title by removing featured artist markers (feat., ft., featuring)
-     and all text that follows them from a song title.
-     
-     This implementation covers all major variations of the feature marker:
-     - Keywords: feat, feat., ft, ft., featuring (case-insensitive)
-     - Enclosure: Parentheses (), Square Brackets [], and Curly Braces {}
-     
-     Example: "Title {Ft. Artist}" -> "Title"
-     */
-    func cleaningTitleOfFeatures() -> String {
-        // IMPROVED Pattern: Matches optional space, optional enclosure ([(|{]), (keywords), optional enclosure ([)|}]), and everything that follows.
-        let pattern = "\\s*[\\(\\[\\{]?(feat\\.?|ft\\.?|featuring)[\\)\\]\\}]?.*$"
-
-        do {
-            let regex = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)
-            
-            // 1. Replace the matched pattern with an empty string
-            let range = NSRange(location: 0, length: self.utf16.count)
-            let clean = regex.stringByReplacingMatches(
-                in: self,
-                options: [],
-                range: range,
-                withTemplate: ""
-            )
-            
-            // 2. Clean up trailing whitespace and punctuation left behind
-            var finalTitle = clean.trimmingCharacters(in: .whitespacesAndNewlines)
-            
-            // Remove any trailing punctuation (e.g., a comma or period right before the feature began)
-            if let lastChar = finalTitle.last, ",.:;".contains(lastChar) {
-                finalTitle.removeLast()
-            }
-            
-            return finalTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-            
-        } catch {
-            // Should not happen with a static pattern
-            print("Regex compilation failed: \(error)")
-            return self.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
     }
 }
 

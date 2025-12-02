@@ -34,11 +34,14 @@ struct ProjectListPreview: View {
                 combinedText
                     .bold()
                     .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
                     .lineLimit(2)
                     .truncationMode(.tail)
                 
                 Text("\(artistsNames) • \((stringToDate(releaseDate) ?? Foundation.Date()).formatted(.dateTime.year()))")
                     .foregroundStyle(.gray)
+                    .font(.subheadline)
+                    .multilineTextAlignment(.leading)
                     .lineLimit(2)
                     .truncationMode(.tail)
             }

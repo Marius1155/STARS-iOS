@@ -2,14 +2,6 @@ import SwiftUI
 import SDWebImageSwiftUI
 import STARSAPI
 
-extension DateFormatter {
-    static let yyyyMMdd: DateFormatter = {
-        let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd"
-        return df
-    }()
-}
-
 struct ProjectDetailView: View {
      
     
@@ -332,3 +324,4 @@ struct ProjectDetailView: View {
         ProjectDetailView(projectID: "1")
     }
 }
+

@@ -28,13 +28,6 @@ struct SquareGradientIcon: View {
     }
 }
 
-// Custom colors defined for clarity
-extension Color {
-    static let blue = Color(red: 44/255, green: 155/255, blue: 185/255)
-    static let grayGreen = Color(red: 134/255, green: 219/255, blue: 169/255)
-    static let pink = Color(red: 221/255, green: 158/255, blue: 240/255)
-}
-
 #Preview {
     SquareGradientIcon()
 }

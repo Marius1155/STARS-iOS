@@ -817,43 +817,6 @@ struct ReviewsView: View {
 }*/
 
 
-extension Color {
-    /// Returns true if white text should be used on this color, false if black is better
-    func prefersWhiteText() -> Bool {
-        // Convert Color -> UIColor to extract RGBA
-        let uiColor = UIColor(self)
-        var red: CGFloat = 0
-        var green: CGFloat = 0
-        var blue: CGFloat = 0
-        var alpha: CGFloat = 0
-        uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
-
-        // Relative luminance formula (sRGB)
-        func adjust(_ value: CGFloat) -> CGFloat {
-            return (value <= 0.03928) ? (value / 12.92) : pow((value + 0.055) / 1.055, 2.4)
-        }
-
-        let r = adjust(red)
-        let g = adjust(green)
-        let b = adjust(blue)
-
-        let luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
-
-        // Threshold: if it's dark, use white text
-        return luminance < 0.5
-    }
-    
-    func secondaryTextGray() -> Color {
-        if self.prefersWhiteText() {
-            // Background is dark → white is main → use a lighter gray
-            return Color(.systemGray3) // closer to white, softer than pure white
-        } else {
-            // Background is light → black is main → use a darker gray
-            return Color(.systemGray6) // closer to black, softer than pure black
-        }
-    }
-}
-
 /*struct ResizingTabView<Content: View>: View {
     let count: Int
     @ViewBuilder let content: (Int) -> Content
