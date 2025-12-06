@@ -8,13 +8,18 @@
 import SwiftUI
 import STARSAPI
 import SDWebImageSwiftUI
+import AVFoundation
 
 struct AppleMusicAlbumDetailView: View {
     @Environment(\.colorScheme) var colorScheme
     
     var albumID: String
     
+    @State private var player: AVPlayer?
+    @State private var playingSongID: String?
+    
     @State private var album: STARSAPI.GetAppleMusicAlbumDetailQuery.Data.GetAlbumDetail? = nil
+    @State private var bgColor: Color = .gray
     
     // MARK: Sheet/Search State
     @State private var artistsSearchResults: [STARSAPI.SearchForAppleMusicArtistsQuery.Data.SearchAppleMusicArtist] = []
@@ -72,17 +77,12 @@ struct AppleMusicAlbumDetailView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                     
-                    if let date = stringToDate(album.releaseDate) {
-                        let filteredGenres = album.genreNames.filter { $0 != "Music" }
-                        
-                        let infoText = ([date.formatted(.dateTime.year().month().day())] +
-                                        filteredGenres)
-                            .joined(separator: " • ")
-
+                    // Inside your body ...
+                    if let infoText = makeInfoText(for: album) {
                         HStack {
                             Spacer()
                             
-                            Text(infoText)
+                            infoText
                                 .multilineTextAlignment(.center)
                                 .lineLimit(nil)
                             
@@ -112,32 +112,35 @@ struct AppleMusicAlbumDetailView: View {
                             
                             VStack(alignment: .leading) {
                                 Text("Alternative Versions")
+                                    .foregroundStyle(colorScheme == .dark ? .white : .black)
                                     .bold()
                                 if album.isSingle {
-                                    Text("Not available for singles, but it's still here for design consistency :))))")
+                                    Text("Not available for singles")
                                         .multilineTextAlignment(.leading)
                                         .font(.caption)
-                                        .opacity(0.8)
+                                        .foregroundStyle(.gray)
                                 } else if selectedAlternativeVersionIDs.isEmpty {
                                     Text("No alternative versions")
+                                        .multilineTextAlignment(.leading)
                                         .font(.caption)
-                                        .opacity(0.8)
+                                        .foregroundStyle(.gray)
                                 } else if selectedAlternativeVersionIDs.contains(nil) {
                                     Text("Make a selection")
+                                        .multilineTextAlignment(.leading)
                                         .font(.caption)
-                                        .opacity(0.8)
+                                        .foregroundStyle(.gray)
                                 } else {
                                     Text("\(selectedAlternativeVersionIDs.count) selected")
+                                        .multilineTextAlignment(.leading)
                                         .font(.caption)
-                                        .opacity(0.8)
+                                        .foregroundStyle(.gray)
                                 }
                             }
-                            .foregroundStyle(colorScheme == .dark ? .white : .black)
                             
                             Spacer()
                             
                             Image(systemName: "chevron.right")
-                                .foregroundStyle(.primary)
+                                //.foregroundStyle(colorScheme == .dark ? .white : .black)
                         }
                         .padding()
                         .background(Color.gray.opacity(0.15))
@@ -147,61 +150,96 @@ struct AppleMusicAlbumDetailView: View {
                     .padding(.horizontal)
                     .padding(.bottom, 10)
                     
-                    // MARK: Song List and Feature Resolution UI
-                    ForEach(Array(album.songs.enumerated()), id: \.element.id) { index, song in
-                        VStack(alignment: .leading) {
-                            HStack {
-                                VStack {
-                                    Text("\(index + 1)")
-                                        .foregroundStyle(.gray)
-                                    
-                                    Spacer()
-                                }
-                                .frame(width: 25)
-                                .padding(.trailing, 5)
-                                
-                                VStack(alignment: .leading) {
-                                    Text(song.name)
-                                    
-                                    Text(formatMainArtists(song.artists.map { $0.name }))
-                                        .foregroundStyle(.gray)
-                                        .font(.caption)
-                                }
-                                
-                                Spacer()
-                                
-                                // Toggle for feature resolution dropdown
-                                Button {
-                                    withAnimation {
-                                        // Close if already open, or open if closed/different
-                                        expandedSongID = expandedSongID == song.id ? nil : song.id
+                    VStack(spacing: 0) {
+                        let isMultiDisc = album.songs.contains(where: { $0.discNumber > 1 })
+                        
+                        // MARK: Song List and Feature Resolution UI
+                        ForEach(album.songs, id: \.id) { song in
+                            let albumArtistsListIsIdenticalToSongArtistsList = album.artists.map { $0.name } == song.artists.map { $0.name }
+                            
+                            VStack(alignment: .leading) {
+                                if song.trackNumber == 1 && isMultiDisc {
+                                    HStack {
+                                        Text("Disc \(song.discNumber)")
+                                            .fontWeight(.semibold)
                                         
-                                        // Initialize features if expanding for the first time
-                                        if expandedSongID == song.id && songFeaturesToResolve[song.id] == nil {
-                                            self.songFeaturesToResolve[song.id] = []
+                                        Spacer()
+                                    }
+                                    .padding(.top)
+                                }
+                        
+                                HStack {
+                                    VStack {
+                                        if albumArtistsListIsIdenticalToSongArtistsList {
+                                            Spacer()
+                                        }
+                                        
+                                        Text("\(song.trackNumber)")
+                                            .foregroundStyle(song.isOut ? .gray : Color(uiColor: .systemGray3))
+                                        
+                                        Spacer()
+                                    }
+                                    .frame(width: 25)
+                                    .padding(.trailing, 5)
+                                    
+                                    VStack(alignment: .leading) {
+                                        Text(song.name)
+                                            .foregroundStyle(song.isOut ? (colorScheme == .dark ? .white : .black) : Color(uiColor: .systemGray3))
+                                        
+                                        if !albumArtistsListIsIdenticalToSongArtistsList {
+                                            Text(formatMainArtists(song.artists.map { $0.name }))
+                                                .foregroundStyle(song.isOut ? .gray : Color(uiColor: .systemGray3))
+                                                .font(.caption)
                                         }
                                     }
-                                } label: {
-                                    Image(systemName: expandedSongID == song.id ? "chevron.up" : "chevron.down")
-                                        .padding(.horizontal)
+                                    
+                                    Spacer()
+                                    
+                                    // Toggle for feature resolution dropdown
+                                    Button {
+                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)){
+                                            // Close if already open, or open if closed/different
+                                            expandedSongID = expandedSongID == song.id ? nil : song.id
+                                            
+                                            // Initialize features if expanding for the first time
+                                            if expandedSongID == song.id && songFeaturesToResolve[song.id] == nil {
+                                                self.songFeaturesToResolve[song.id] = []
+                                            }
+                                        }
+                                    } label: {
+                                        Image(systemName: expandedSongID == song.id ? "chevron.up" : "chevron.down")
+                                            //.foregroundStyle(colorScheme == .dark ? .white : .black)
+                                            .padding(.horizontal)
+                                    }
+                                    .disabled(!song.isOut)
+                                }
+                                .padding(.vertical, 10)
+                                .background(.background)
+                                .zIndex(1)
+                                
+                                // MARK: Feature Resolution Dropdown
+                                if expandedSongID == song.id {
+                                    featureResolutionDropdown(song: song)
+                                        .transition(.move(edge: .top).combined(with: .opacity))
+                                        .zIndex(0)
+                                        .padding(.top, -5)
+                                        .padding(.bottom, 10)
                                 }
                             }
+                            .clipped()
                             
-                            // MARK: Feature Resolution Dropdown
-                            if expandedSongID == song.id {
-                                featureResolutionDropdown(song: song)
-                            }
-                        }
-                        
-                        if index < album.songs.count - 1 {
                             Divider()
                         }
                     }
                     .padding(.horizontal)
+                    .padding(.vertical, -16)
                     
                     Button {
-                        if songFeaturesToResolve.values.contains { $0.contains(nil) } || appleMusicSongsCorrespondentsFromSTARSdb.values.contains { $0 == "" } || (selectedAlternativeVersionIDs.contains(nil) && !album.isSingle) {
+                        if songFeaturesToResolve.values.contains(where: { $0.contains(nil) }) || appleMusicSongsCorrespondentsFromSTARSdb.values.contains(where: { $0 == "" }) || (selectedAlternativeVersionIDs.contains(nil) && !album.isSingle) {
                             alertMessage = "Incomplete information!"
+                        }
+                        else {
+                            
                         }
                     } label: {
                         HStack {
@@ -245,8 +283,12 @@ struct AppleMusicAlbumDetailView: View {
                         artistsKeptForDisplay: $artistsKeptForDisplay,
                         sheetSelectionContext: $sheetSelectionContext,
                         songFeaturesToResolve: $songFeaturesToResolve,
+                        player: $player,
+                        playingSongID: $playingSongID,
+                        playPreview: playPreview,
                         fetchAppleMusicArtists: fetchAppleMusicArtists,
-                        fetchArtistTopSongs: fetchArtistTopSongs
+                        fetchArtistTopSongs: fetchArtistTopSongs,
+                        bgColor: $bgColor
                     )
                 }
                 // MARK: Song Deduplication Sheet
@@ -260,7 +302,8 @@ struct AppleMusicAlbumDetailView: View {
                         appleMusicSong: $songToDeduplicate,
                         duplicateSongsResults: $duplicateSongsResults,
                         appleMusicSongsCorrespondentsFromSTARSdb: $appleMusicSongsCorrespondentsFromSTARSdb,
-                        songsAreBeingFetchedForDeduplication: $songsAreBeingFetchedForDeduplication
+                        songsAreBeingFetchedForDeduplication: $songsAreBeingFetchedForDeduplication,
+                        bgColor: $bgColor
                     )
                 }
                 // MARK: Alternative Versions Sheet (NEW)
@@ -269,10 +312,11 @@ struct AppleMusicAlbumDetailView: View {
                         albumID: album.id,
                         availableProjects: $availableAlternativeVersions,
                         selectedIDs: $selectedAlternativeVersionIDs,
-                        isLoading: $isLoadingAlternativeVersions
+                        isLoading: $isLoadingAlternativeVersions,
+                        bgColor: $bgColor
                     )
                 }
-                .tint(Color(hex: String("#\(album.bgColor)")) ?? .gray)
+                .tint(bgColor)
             }
             else {
                 ProgressView()
@@ -293,6 +337,28 @@ struct AppleMusicAlbumDetailView: View {
     }
     
     // MARK: Helper Views
+    
+    func makeInfoText(for album: STARSAPI.GetAppleMusicAlbumDetailQuery.Data.GetAlbumDetail) -> Text? {
+        // 1. Validate Date
+        guard let date = stringToDate(album.releaseDate) else { return nil }
+        
+        // 2. Prepare Data
+        let filteredGenres = album.genreNames.filter { $0 != "Music" }
+        let projectType = album.isSingle ? "Single" : (album.trackCount <= 6 ? "EP" : "Album")
+        
+        // 3. Start with Image + Project Type
+        var text = Text(Image(systemName: "opticaldisc.fill")).bold() + Text(" \(projectType)")
+        
+        // 4. Prepare list of items to append
+        let remainingItems = [date.formatted(.dateTime.year().month().day())] + filteredGenres
+        
+        // 5. Loop and append with bold dots
+        for item in remainingItems {
+            text = text + Text(" • ").bold() + Text(item)
+        }
+        
+        return text
+    }
     
     // NEW HELPER: Retrieves the artist's name from the currently available search results.
     func featuredArtistName(for artistID: String?) -> String? {
@@ -326,110 +392,170 @@ struct AppleMusicAlbumDetailView: View {
         if let album = self.album {
             VStack(alignment: .leading, spacing: 10) {
                 
-                // MARK: Deduplication Button
-                Button {
-                    // Set the song to initiate the sheet
-                    self.songToDeduplicate = song
-                    // Clear and initiate the search immediately upon opening
-                    self.duplicateSongsResults = []
-                    self.fetchExistingSongs(title: song.name) {
-                        self.songsAreBeingFetchedForDeduplication = false
+                // MARK: Play Preview Button
+                // We check if the URL exists and is not empty
+                HStack(spacing: 10) { // Added spacing in case you keep them side-by-side
+                    // MARK: Preview Button
+                    if !song.previewUrl.isEmpty {
+                        Button {
+                            playPreview(url: song.previewUrl, songID: song.id)
+                        } label: {
+                            HStack {
+                                Image(systemName: playingSongID == song.id ? "pause.circle.fill" : "play.circle.fill")
+                                    .font(.title3)
+                                
+                                Text("Preview")
+                                    .fontWeight(.semibold)
+                                
+                                Spacer()
+                            }
+                            .padding(.vertical, 14)
+                            .padding(.horizontal)
+                            .foregroundStyle(
+                                (Color(hex: "#\(album.bgColor)") ?? .gray).prefersWhiteText() ? .white : .black
+                            )
+                            .background {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .foregroundStyle(Color(hex: String("#\(album.bgColor)")) ?? .gray)
+                            }
+                        }
                     }
-                } label: {
-                    HStack {
-                        Image(systemName: "square.stack.3d.down.right.fill")
-                        Text("Check for Existing Song (Deduplicate)")
-                    }
-                    .font(.subheadline)
-                    .padding(.vertical, 5)
-                    .frame(maxWidth: .infinity)
-                    .foregroundStyle(self.appleMusicSongsCorrespondentsFromSTARSdb[song.id] == "" ? (Color.red.opacity(0.8).prefersWhiteText() ? .white : .black) : (Color.green.opacity(0.8).prefersWhiteText() ? .white : .black))
-                    .background {
-                        RoundedRectangle(cornerRadius: 10)
-                            .foregroundStyle(self.appleMusicSongsCorrespondentsFromSTARSdb[song.id] == "" ? Color.red.opacity(0.8) : Color.green.opacity(0.8))
+                    
+                    // MARK: Deduplication Button
+                    Button {
+                        self.songToDeduplicate = song
+                        self.duplicateSongsResults = []
+                        self.fetchExistingSongs(title: song.name) {
+                            self.songsAreBeingFetchedForDeduplication = false
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "square.stack.3d.down.right.fill")
+                                .font(.title3)
+                            
+                            Text("Deduplicate")
+                                .fontWeight(.semibold)
+                            
+                            Spacer()
+                        }
+                        // 1. Removed .font(.subheadline) so it matches "Preview" size
+                        // 2. Increased padding to 10 to match "Preview" height
+                        .padding(.vertical, 10)
+                        .padding(.horizontal)
+                        .foregroundStyle(self.appleMusicSongsCorrespondentsFromSTARSdb[song.id] == "" ? (Color.red.opacity(0.8).prefersWhiteText() ? .white : .black) : (Color.green.opacity(0.8).prefersWhiteText() ? .white : .black))
+                        .background {
+                            RoundedRectangle(cornerRadius: 10)
+                                .foregroundStyle(self.appleMusicSongsCorrespondentsFromSTARSdb[song.id] == "" ? Color.red.opacity(0.8) : Color.green.opacity(0.8))
+                        }
                     }
                 }
                 
                 if song.name.cleaningTitleOfFeatures() != song.name && self.appleMusicSongsCorrespondentsFromSTARSdb[song.id] == nil{
                     // + / - Buttons for count
-                    HStack {
-                        Text("Add ONLY the featured artists manually (the main artists are taken care of automatically):")
-                            .bold()
-                        
-                        Spacer()
-                        
-                        Button {
-                            // Minus button
-                            if var features = songFeaturesToResolve[song.id], !features.isEmpty {
-                                features.removeLast()
-                                songFeaturesToResolve[song.id] = features
-                            }
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                        }
-                        .disabled(songFeaturesToResolve[song.id]?.isEmpty ?? true)
-                        
-                        Text("\(songFeaturesToResolve[song.id]?.count ?? 0)")
-                        
-                        Button {
-                            // Plus button
-                            var features = songFeaturesToResolve[song.id] ?? []
-                            features.append(nil) // Add an unresolved placeholder
-                            songFeaturesToResolve[song.id] = features
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                        }
-                    }
-                    .padding(.top, 5)
                     
-                    // Artist Selection Fields
-                    if let features = songFeaturesToResolve[song.id], !features.isEmpty {
-                        ForEach(features.indices, id: \.self) { featureIndex in
-                            let selectedArtistID = features[featureIndex]
-                            let isResolved = selectedArtistID != nil
+                    VStack {
+                        HStack {
+                            Text("Add ONLY the featured artists manually (the main artists are taken care of automatically):")
+                                .bold()
                             
-                            HStack {
-                                if let artistName = featuredArtistName(for: selectedArtistID) {
-                                    Text("Feature \(featureIndex + 1): \(artistName)")
-                                        .lineLimit(1)
-                                } else {
-                                    Text("Feature \(featureIndex + 1): ") + Text("Empty").italic()
+                            Spacer()
+                            
+                            Button {
+                                // Minus button
+                                if var features = songFeaturesToResolve[song.id], !features.isEmpty {
+                                    features.removeLast()
+                                    songFeaturesToResolve[song.id] = features
                                 }
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                            }
+                            .disabled(songFeaturesToResolve[song.id]?.isEmpty ?? true)
+                            
+                            Text("\(songFeaturesToResolve[song.id]?.count ?? 0)")
+                            
+                            Button {
+                                // Plus button
+                                var features = songFeaturesToResolve[song.id] ?? []
+                                features.append(nil) // Add an unresolved placeholder
+                                songFeaturesToResolve[song.id] = features
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                            }
+                        }
+                        
+                        // Artist Selection Fields
+                        if let features = songFeaturesToResolve[song.id], !features.isEmpty {
+                            ForEach(features.indices, id: \.self) { featureIndex in
+                                let selectedArtistID = features[featureIndex]
+                                let isResolved = selectedArtistID != nil
                                 
-                                Spacer()
-                                
-                                Button {
-                                    // 1. Set context to open sheet for this featured artist slot
-                                    sheetSelectionContext = (song.id, featureIndex)
-                                    
-                                    // 2. SMART PRE-LOADING: If an artist is already selected, search for them
-                                    if let artistID = selectedArtistID,
-                                       let artistName = featuredArtistName(for: artistID) {
-                                        // Search for the selected artist so they are visible on open
-                                        fetchAppleMusicArtists(term: artistName)
+                                HStack {
+                                    if let artistName = featuredArtistName(for: selectedArtistID) {
+                                        Text("Feature \(featureIndex + 1): \(artistName)")
+                                            .lineLimit(1)
                                     } else {
-                                        // If unresolved, clear results for a clean start
-                                        artistsSearchResults = []
+                                        Text("Feature \(featureIndex + 1): ") + Text("Empty").italic()
                                     }
-                                } label: {
-                                    Text(isResolved ? "Change" : "Select Artist")
-                                        .padding(.vertical, 5)
-                                        .padding(.horizontal, 10)
-                                        .foregroundStyle(features[featureIndex] == nil ? (Color.red.opacity(0.8).prefersWhiteText() ? .white : .black) : (Color.green.opacity(0.8).prefersWhiteText() ? .white : .black))
-                                        .background {
-                                            RoundedRectangle(cornerRadius: 10)
-                                                .foregroundStyle(features[featureIndex] == nil ? Color.red.opacity(0.8) : Color.green.opacity(0.8))
+                                    
+                                    Spacer()
+                                    
+                                    Button {
+                                        // 1. Set context to open sheet for this featured artist slot
+                                        sheetSelectionContext = (song.id, featureIndex)
+                                        
+                                        // 2. SMART PRE-LOADING: If an artist is already selected, search for them
+                                        if let artistID = selectedArtistID,
+                                           let artistName = featuredArtistName(for: artistID) {
+                                            // Search for the selected artist so they are visible on open
+                                            fetchAppleMusicArtists(term: artistName)
+                                        } else {
+                                            // If unresolved, clear results for a clean start
+                                            artistsSearchResults = []
                                         }
+                                    } label: {
+                                        Text(isResolved ? "Change" : "Select Artist")
+                                            .padding(.vertical, 5)
+                                            .padding(.horizontal, 10)
+                                            .foregroundStyle(features[featureIndex] == nil ? (Color.red.opacity(0.8).prefersWhiteText() ? .white : .black) : (Color.green.opacity(0.8).prefersWhiteText() ? .white : .black))
+                                            .background {
+                                                RoundedRectangle(cornerRadius: 10)
+                                                    .foregroundStyle(features[featureIndex] == nil ? Color.red.opacity(0.8) : Color.green.opacity(0.8))
+                                            }
+                                    }
                                 }
                             }
-                            .padding(.vertical, 2)
                         }
                     }
+                    .padding()
+                    .background(Color.gray.opacity(0.15))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
             }
-            .padding()
-            .background(Color.gray.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .onDisappear {
+                player?.pause()
+                playingSongID = nil
+            }
+        }
+    }
+
+    // MARK: Audio Helper
+    private func playPreview(url: String, songID: String) {
+        if playingSongID == songID {
+            // Tapped the playing song: Pause it
+            player?.pause()
+            playingSongID = nil
+        } else {
+            // Tapped a new song: Play it
+            guard let audioURL = URL(string: url) else { return }
+            
+            // Activate audio session so it plays even if the silent switch is on
+            try? AVAudioSession.sharedInstance().setCategory(.playback)
+            try? AVAudioSession.sharedInstance().setActive(true)
+            
+            player?.pause()
+            player = AVPlayer(url: audioURL)
+            player?.play()
+            playingSongID = songID
         }
     }
     
@@ -437,8 +563,8 @@ struct AppleMusicAlbumDetailView: View {
     
     func formattedArtworkUrl(from template: String, width: Int = 600, height: Int = 600) -> String {
         return template
-            .replacingOccurrences(of: "{w}", with: "\(width)")
-            .replacingOccurrences(of: "{h}", with: "\(height)")
+            .replacingOccurrences(of: "{w}", with: "\(width * 3)")
+            .replacingOccurrences(of: "{h}", with: "\(height * 3)")
     }
     
     func stringToDate(_ dateString: String) -> Foundation.Date? {
@@ -459,10 +585,16 @@ struct AppleMusicAlbumDetailView: View {
                         // Initialize features array for all songs with empty arrays
                         for song in fetchedAlbum.songs {
                             self.songFeaturesToResolve[song.id] = []
-                            self.appleMusicSongsCorrespondentsFromSTARSdb[song.id] = ""
+                            if song.isOut {
+                                self.appleMusicSongsCorrespondentsFromSTARSdb[song.id] = ""
+                            }
+                            else {
+                                self.appleMusicSongsCorrespondentsFromSTARSdb[song.id] = nil
+                            }
                             self.selectedAlternativeVersionIDs.insert(nil)
                         }
                         
+                        self.bgColor = (Color(hex: "#\(fetchedAlbum.bgColor)") ?? .gray)
                         self.album = fetchedAlbum
                     }
                 } else if let errors = graphQLResult.errors {
@@ -611,6 +743,7 @@ struct AlternativeVersionsSheet: View {
     // The set of IDs selected by the user
     @Binding var selectedIDs: Set<String?>
     @Binding var isLoading: Bool
+    @Binding var bgColor: Color
     
     // MARK: Search State
     @State private var searchText: String = ""
@@ -748,6 +881,7 @@ struct AlternativeVersionsSheet: View {
                 }
             }
         }
+        .tint(bgColor)
         .presentationDetents([.medium, .large])
         .interactiveDismissDisabled()
     }
@@ -770,9 +904,16 @@ struct ArtistSelectionSheet: View {
     
     @Binding var songFeaturesToResolve: [String: [String?]]
     
+    @Binding var player: AVPlayer?
+    @Binding var playingSongID: String?
+    
+    let playPreview: (String, String) -> Void
+    
     let fetchAppleMusicArtists: (String) -> Void
     // New dependency: fetchArtistTopSongs from parent view
     let fetchArtistTopSongs: (String) async -> [STARSAPI.GetAppleMusicArtistTopSongsQuery.Data.GetAppleMusicArtistTopSong]
+    
+    @Binding var bgColor: Color
     
     @State private var searchText: String = ""
     
@@ -887,7 +1028,7 @@ struct ArtistSelectionSheet: View {
                 .padding()
             }
         }
-        // 🧩 Fixed height and drag indicator for a cleaner modal
+        .tint(bgColor)
         .presentationDetents([.medium])
         .presentationDragIndicator(.hidden)
         .interactiveDismissDisabled(true)
@@ -936,7 +1077,11 @@ struct ArtistSelectionSheet: View {
                 TopSongsDetailSheet(
                     artistID: artistID,
                     artistName: artist.name,
-                    topSongs: artistTopSongs[artistID]
+                    topSongs: artistTopSongs[artistID],
+                    player: $player,
+                    playingSongID: $playingSongID,
+                    playPreview: playPreview,
+                    bgColor: $bgColor
                 )
             }
         }
@@ -992,6 +1137,13 @@ struct TopSongsDetailSheet: View {
     let artistName: String
     let topSongs: [STARSAPI.GetAppleMusicArtistTopSongsQuery.Data.GetAppleMusicArtistTopSong]?
     
+    @Binding var player: AVPlayer?
+    @Binding var playingSongID: String?
+    
+    let playPreview: (String, String) -> Void
+    
+    @Binding var bgColor: Color
+    
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
@@ -1012,14 +1164,14 @@ struct TopSongsDetailSheet: View {
                         .foregroundColor(.secondary)
                 }
             }
-
+            
             Divider()
-
+            
             ScrollView {
                 if let songs = topSongs {
                     if songs.isEmpty {
                         Text("No top songs available for this artist.")
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     } else {
                         ForEach(songs, id: \.id) { song in
                             HStack {
@@ -1027,21 +1179,32 @@ struct TopSongsDetailSheet: View {
                                     // 1. System image and bigger font
                                     HStack(spacing: 5) {
                                         Image(systemName: "music.note")
-                                            .foregroundColor(.primary) // Set color explicitly if needed
+                                            .foregroundStyle(.primary)
                                         Text(song.name)
                                     }
-                                    .font(.headline) // Apply headline font to both icon and text
+                                    .font(.headline)
                                     .lineLimit(1)
                                     
                                     // 2. Formatted artists on the next line
-                                    Text(formatArtists(song.artists))
+                                    Text(song.artistsNames)
                                         .font(.subheadline)
-                                        .foregroundColor(.secondary)
+                                        .foregroundStyle(.secondary)
                                         .lineLimit(1)
                                 }
                                 .padding(.vertical, 4)
                                 
                                 Spacer()
+                                
+                                // 3. Play Button
+                                if !song.previewUrl.isEmpty {
+                                    Button {
+                                        playPreview(song.previewUrl, song.id)
+                                    } label: {
+                                        Image(systemName: playingSongID == song.id ? "pause.circle.fill" : "play.circle.fill")
+                                            .contentTransition(.symbolEffect(.replace)) // Nice transition animation
+                                    }
+                                    .buttonStyle(.plain) // Prevents the whole row from flashing if in a List
+                                }
                             }
                             Divider()
                         }
@@ -1052,22 +1215,13 @@ struct TopSongsDetailSheet: View {
                 }
             }
         }
+        .tint(bgColor)
         .padding()
-        .presentationDetents([.medium, .large]) // Allow expansion for long lists
-    }
-    
-    // Utility to format the artists array: A, B & C
-    private func formatArtists(_ artists: [STARSAPI.GetAppleMusicArtistTopSongsQuery.Data.GetAppleMusicArtistTopSong.Artist]) -> String {
-        let names = artists.map { $0.name }
-        
-        guard !names.isEmpty else { return "Unknown Artist(s)" }
-        
-        if names.count <= 2 {
-            return names.joined(separator: " & ")
-        } else {
-            let last = names.last!
-            let others = names.dropLast().joined(separator: ", ")
-            return "\(others) & \(last)"
+        .presentationDetents([.medium, .large])
+        // 4. Stop audio when the sheet is dismissed
+        .onDisappear {
+            player?.pause()
+            playingSongID = nil
         }
     }
 }
@@ -1079,6 +1233,8 @@ struct SongDeduplicationSheet: View {
     @Binding var duplicateSongsResults: [STARSAPI.SearchExistingSongsQuery.Data.Songs.Edge.Node]
     @Binding var appleMusicSongsCorrespondentsFromSTARSdb: [String: String?]
     @Binding var songsAreBeingFetchedForDeduplication: Bool
+    
+    @Binding var bgColor: Color
     
     var body: some View {
         VStack(alignment: .leading) {
@@ -1153,7 +1309,7 @@ struct SongDeduplicationSheet: View {
                             
                             HStack {
                                 Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
-                                    .foregroundColor(isSelected ? .accentColor : .gray)
+                                    .foregroundColor(isSelected ? .primary : .gray)
                                 
                                 VStack(alignment: .leading) {
                                     Text(song.title)
@@ -1183,6 +1339,7 @@ struct SongDeduplicationSheet: View {
                 }
             }
         }
+        .tint(bgColor)
         .padding()
         .presentationDetents([.medium])
         .presentationDragIndicator(.hidden)
@@ -1191,8 +1348,11 @@ struct SongDeduplicationSheet: View {
 }
 
 #Preview {
-    AppleMusicAlbumDetailView(albumID: "1083723149")
+    AppleMusicAlbumDetailView(albumID: "402298887")
     //BRAT: 1739079974
     //Wicked: 1772364192
     //Vroom Vroom - EP: 1083723149
+    //Kiss The Beast: 1840879306
+    //Brat and it's completely different: 1767862943
+    //Back To Basics: 402298887
 }

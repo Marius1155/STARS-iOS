@@ -54,8 +54,8 @@ struct ProjectListPreview: View {
     
     func formattedArtworkUrl(from template: String, width: Int = 600, height: Int = 600) -> String {
         return template
-            .replacingOccurrences(of: "{w}", with: "\(width)")
-            .replacingOccurrences(of: "{h}", with: "\(height)")
+            .replacingOccurrences(of: "{w}", with: "\(width * 3)")
+            .replacingOccurrences(of: "{h}", with: "\(height * 3)")
     }
     
     func stringToDate(_ dateString: String) -> Foundation.Date? {

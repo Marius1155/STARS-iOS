@@ -3,13 +3,8 @@ query GetAppleMusicArtistTopSongs($artistId: String!) {
     id
     name
     releaseDate
-    
-    artists {
-      name
-      id
-    }
-      
     lengthMs
     previewUrl
+    artistsNames
   }
 }

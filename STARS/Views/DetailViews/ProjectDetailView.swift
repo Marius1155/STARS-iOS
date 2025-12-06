@@ -83,11 +83,11 @@ struct ProjectDetailView: View {
                         Text("•").bold()
                     }
                     
-                    Text("\(project?.numberOfSongs ?? 0) \(project?.numberOfSongs == 1 ? "track" : "tracks")")
+                    //Text("\(project?.numberOfSongs ?? 0) \(project?.numberOfSongs == 1 ? "track" : "tracks")")
                     
-                    Text("•").bold()
+                    //Text("•").bold()
                     
-                    Text("\(project?.length ?? 0) \(project?.length == 1 ? "minute" : "minutes")")
+                    //Text("\(project?.length ?? 0) \(project?.length == 1 ? "minute" : "minutes")")
                 }
                 .padding(.top, -3)
                 
