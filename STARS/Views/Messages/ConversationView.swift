@@ -267,7 +267,7 @@ struct ConversationView: View {
             // MARK: - Header
             if let otherUser = viewModel.otherUser {
                 NavigationLink {
-                    //ProfileView(id: otherUser.id)
+                    ProfileView(id: otherUser.id)
                 } label: {
                     HStack {
                         // ProfilePictureView(pictureURL: otherUser.profile.profilePicture, diameter: 64)
@@ -646,16 +646,6 @@ struct ConversationView: View {
                 .background(Color(.systemGray6))
             }
         }
-        .navigationTitle(viewModel.otherUser?.username ?? "Loading...")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarHidden(false)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Text(viewModel.otherUser?.username ?? "Loading...")
-                    .font(.headline)
-                    .foregroundColor(.clear)
-            }
-        }
         .background(
             Color.clear.contentShape(Rectangle()) // Make the whole screen tappable
                 .onTapGesture {
@@ -666,10 +656,7 @@ struct ConversationView: View {
             isTextFieldFocused = false // Dismiss keyboard
         }
         .onAppear {
-            NotificationCenter.default.post(name: .hideTabBar, object: nil)
-            DataManager.shared.shouldShowTabBar = false
             viewModel.fetchInitialData()
-            
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
             switch newPhase {
@@ -684,6 +671,16 @@ struct ConversationView: View {
                 break
             @unknown default:
                 break
+            }
+        }
+        .navigationTitle(viewModel.otherUser?.username ?? "Loading...")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(false)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(viewModel.otherUser?.username ?? "Loading...")
+                    .font(.headline)
+                    .foregroundColor(.clear)
             }
         }
     }

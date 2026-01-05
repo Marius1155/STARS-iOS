@@ -13,7 +13,7 @@ struct HomeView: View {
     @AppStorage("userID") var userID: String = ""
     
     @State private var isReady = false
-    @State private var featuredProjectsIDs: [String] = []
+    @State private var featuredProjects: [(id: String, title: String, starAverage: Double, coverImage: String, primaryColor: String, secondaryColor: String, artists: [(id: String, name: String, position: Int)])] = []
     
     var body: some View {
         ScrollView {
@@ -32,13 +32,12 @@ struct HomeView: View {
                     
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack {
-                            ForEach(featuredProjectsIDs, id: \.self) { projectID in
+                            ForEach(featuredProjects, id: \.id) { projectData in
                                 NavigationLink {
-                                    ProjectDetailView(projectID: projectID)
+                                    //ProjectDetailView(projectID: projectData.id)
                                     
                                 } label: {
-                                    ProjectPreview(projectID: projectID)
-                                        .foregroundColor(.primary)
+                                    ProjectPreview(projectData: projectData)
                                 }
                             }
                         }
@@ -63,8 +62,26 @@ struct HomeView: View {
             switch result {
             case .success(let graphQLResult):
                 if let projects = graphQLResult.data?.projects {
-                    // Use IDs directly as Int
-                    featuredProjectsIDs = projects.edges.compactMap { $0.node.id }
+                                    featuredProjects = projects.edges.compactMap { edge in
+                                        let node = edge.node
+                                        let coverNode = node.covers.edges.first?.node
+                                        
+                                        return (
+                                            id: node.id,
+                                            title: node.title,
+                                            starAverage: node.starAverage,
+                                            coverImage: coverNode?.image ?? "",
+                                            primaryColor: coverNode?.primaryColor ?? "",
+                                            secondaryColor: coverNode?.secondaryColor ?? "",
+                                            artists: node.projectArtists.edges.compactMap { artistEdge in
+                                                return (
+                                                    id: artistEdge.node.artist.id,
+                                                    name: artistEdge.node.artist.name,
+                                                    position: artistEdge.node.position
+                                                )
+                                            }
+                                        )
+                                    }
                     isReady = true
                 }
             case .failure(let error):

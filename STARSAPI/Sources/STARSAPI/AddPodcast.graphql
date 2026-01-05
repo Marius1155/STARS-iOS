@@ -1,0 +1,5 @@
+mutation AddPodcast($id: String!) {
+    importPodcastFromItunes(applePodcastsId: $id) {
+        id
+    }
+}

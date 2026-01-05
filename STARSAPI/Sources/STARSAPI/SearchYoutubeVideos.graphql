@@ -1,0 +1,13 @@
+query SearchYoutubeVideos($term: String!) {
+  searchYoutubeVideos(term: $term) {
+    id
+    title
+    thumbnailUrl
+    channelName
+    publishedAt
+    lengthMs
+    viewCount
+    url
+    primaryColor
+  }
+}

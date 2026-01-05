@@ -9,36 +9,18 @@ import SwiftUI
 import STARSAPI
 
 struct SearchAppleMusicAlbumsView: View {
+    @Environment(\.colorScheme) var colorScheme
+
     @State private var albums: [STARSAPI.SearchAppleMusicAlbumsQuery.Data.SearchAppleMusicAlbum] = []
-    @State private var searchText = ""
+    @State var searchText: String
     
     var body: some View {
-        VStack {
+        VStack(spacing: 10) {
             if searchText.isEmpty && albums.isEmpty {
-                VStack {
-                    Spacer()
-                    
-                    HStack(spacing: 4) {
-                        Text("Search Apple Music")
-                            .font(.title3)
-                        Image("AppleMusicIcon")
-                            .resizable()
-                            .frame(width: 22, height: 22)
-                        Text("for albums")
-                            .font(.title3)
-                    }
-                    
-                    Spacer()
-                }
+                emptyStatePlaceholder
             }
             else if !searchText.isEmpty && albums.isEmpty {
-                VStack {
-                    Spacer()
-                    
-                    Text("No albums found")
-                    
-                    Spacer()
-                }
+                ContentUnavailableView.search(text: searchText)
             }
             else {
                 ScrollView {
@@ -72,12 +54,51 @@ struct SearchAppleMusicAlbumsView: View {
             // 2. Perform the API call with the debounced text
             fetchAlbums(term: searchText)
         }
+        .navigationTitle("Search Albums")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Search Albums")
+                    .font(.headline)
+                    .foregroundColor(.clear)
+            }
+        }
     }
+    
+    @ViewBuilder
+        var emptyStatePlaceholder: some View {
+            VStack(spacing: 24) {
+                Spacer()
+                Spacer()
+                
+                Image("AppleMusicIcon")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 70, height: 70)
+                    .shadow(color: colorScheme == .dark ? .white.opacity(0.1) : .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                
+                VStack(spacing: 8) {
+                    Text("Search Apple Music")
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(.primary)
+                    
+                    Text("Find albums to add to the database.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, 40)
+                
+                Spacer()
+                Spacer()
+                Spacer()
+            }
+        }
     
     func fetchAlbums(term: String) {
         let query = STARSAPI.SearchAppleMusicAlbumsQuery(term: term)
         
-        Network.shared.apollo.fetch(query: query) { result in
+        Network.shared.apollo.fetch(query: query, cachePolicy: .fetchIgnoringCacheData) { result in
             switch result {
             case .success(let graphQLResult):
                 if let fetchedAlbums = graphQLResult.data?.searchAppleMusicAlbums {
@@ -96,6 +117,6 @@ struct SearchAppleMusicAlbumsView: View {
 
 #Preview {
     NavigationView {
-        SearchAppleMusicAlbumsView()
+        SearchAppleMusicAlbumsView(searchText: "")
     }
 }

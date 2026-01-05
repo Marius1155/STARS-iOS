@@ -1,0 +1,13 @@
+query SearchEventSeries($term: String!) {
+  eventSeries(
+    filters: { search: $term }
+    first: 20
+  ) {
+    edges {
+      node {
+        id
+        name
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+query SearchEvents($term: String!) {
+  events(
+    filters: { search: $term }
+    first: 20
+  ) {
+    edges {
+      node {
+        id
+        name
+        date
+        location
+        isOneTime
+        series {
+          id
+          name
+        }
+      }
+    }
+  }
+}

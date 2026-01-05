@@ -143,129 +143,117 @@ class MessagesViewModel: ObservableObject {
 struct MessagesView: View {
     @Environment(\.scenePhase) var scenePhase
     @Environment(\.colorScheme) var colorScheme
-    
-    
 
     @StateObject private var viewModel: MessagesViewModel
     
     @AppStorage("userID") var userID: String = ""
-    
-    @State private var columnVisibility = NavigationSplitViewVisibility.all
-    
+        
     init() {
         _viewModel = StateObject(wrappedValue: MessagesViewModel())
     }
     
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
-            VStack {
-                if viewModel.conversations.isEmpty {
-                    ProgressView()
-                } else {
-                    ScrollViewReader{ scrollViewProxy in
-                        ScrollView {
-                            LazyVStack {
-                                if viewModel.hasNextPageOlder {
-                                    ProgressView()
-                                        .onAppear {
-                                            viewModel.loadOlderConversations()
-                                        }
-                                }
-                                // Filter conversations based on the search query
-                                ForEach(viewModel.conversations, id: \.id) { conversation in
-                                    NavigationLink {
-                                        ConversationView(conversationID: conversation.id)
-                                    } label: {
-                                        HStack {
-                                            let personYouAreTalkingTo = conversation.participants.edges.first(where: { $0.node.id != userID })!.node
-                                            if personYouAreTalkingTo.profile.profilePicture == "" || personYouAreTalkingTo.profile.profilePicture == nil {
-                                                Image(systemName: "person.circle")
-                                                    .resizable()
-                                                    .scaledToFill()
-                                                    .frame(width: 64, height: 64)
-                                                    .clipShape(Circle())
-                                            }
-                                            else {
-                                                WebImage(url: URL(string: (personYouAreTalkingTo.profile.profilePicture)!))
-                                                    .resizable()
-                                                    .scaledToFill()
-                                                    .frame(width: 64, height: 64)
-                                                    .clipShape(Circle())
-                                            }
-                                            
-                                            VStack(alignment: .leading) {
-                                                ProfileNameAndPronounsView(displayName: personYouAreTalkingTo.firstName, username: personYouAreTalkingTo.username, pronouns: personYouAreTalkingTo.profile.pronouns)
-                                                
-                                                if conversation.seenBy.edges.contains(where: { $0.node.id == userID }) {
-                                                    HStack {
-                                                        Text(conversation.latestMessageSender?.id == userID ? "You: " + conversation.latestMessageText : conversation.latestMessageText)
-                                                            .font(.subheadline)
-                                                            .foregroundColor(.gray)
-                                                            .lineLimit(1)
-                                                            .truncationMode(.tail)
-                                                        
-                                                        Text("•")
-                                                            .font(.subheadline)
-                                                            .foregroundColor(.gray)
-                                                        
-                                                        Text(formatDate(date(from: conversation.latestMessageTime!) ?? Foundation.Date()))
-                                                            .font(.subheadline)
-                                                            .foregroundColor(.gray)
-                                                    }
-                                                }
-                                                
-                                                else {
-                                                    HStack {
-                                                        Text(conversation.latestMessageSender?.id == userID ? "You: " + conversation.latestMessageText : conversation.latestMessageText)
-                                                            .font(.subheadline)
-                                                            .foregroundColor(colorScheme == .dark ? .white : .black)
-                                                            .bold()
-                                                            .lineLimit(1)
-                                                            .truncationMode(.tail)
-                                                        
-                                                        Text("•")
-                                                            .font(.subheadline)
-                                                            .foregroundColor(.gray)
-                                                        
-                                                        Text(formatDate(date(from: conversation.latestMessageTime!) ?? Foundation.Date()))
-                                                            .font(.subheadline)
-                                                            .foregroundColor(.gray)
-                                                    }
-                                                }
-                                            }
-                                            
-                                            Spacer()
-                                        }
+        VStack {
+            if viewModel.conversations.isEmpty {
+                ProgressView()
+            } else {
+                ScrollViewReader{ scrollViewProxy in
+                    ScrollView {
+                        LazyVStack {
+                            if viewModel.hasNextPageOlder {
+                                ProgressView()
+                                    .onAppear {
+                                        viewModel.loadOlderConversations()
                                     }
-                                    
-                                    Divider()
+                            }
+                            // Filter conversations based on the search query
+                            ForEach(viewModel.conversations, id: \.id) { conversation in
+                                NavigationLink {
+                                    ConversationView(conversationID: conversation.id)
+                                        .hideTabBar()
+                                } label: {
+                                    HStack {
+                                        let personYouAreTalkingTo = conversation.participants.edges.first(where: { $0.node.id != userID })!.node
+                                        if personYouAreTalkingTo.profile.profilePicture == "" || personYouAreTalkingTo.profile.profilePicture == nil {
+                                            Image(systemName: "person.circle")
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 64, height: 64)
+                                                .clipShape(Circle())
+                                        }
+                                        else {
+                                            WebImage(url: URL(string: (personYouAreTalkingTo.profile.profilePicture)!))
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 64, height: 64)
+                                                .clipShape(Circle())
+                                        }
+                                        
+                                        VStack(alignment: .leading) {
+                                            ProfileNameAndPronounsView(displayName: personYouAreTalkingTo.firstName, username: personYouAreTalkingTo.username, pronouns: personYouAreTalkingTo.profile.pronouns)
+                                            
+                                            if conversation.seenBy.edges.contains(where: { $0.node.id == userID }) {
+                                                HStack {
+                                                    Text(conversation.latestMessageSender?.id == userID ? "You: " + conversation.latestMessageText : conversation.latestMessageText)
+                                                        .font(.subheadline)
+                                                        .foregroundColor(.gray)
+                                                        .lineLimit(1)
+                                                        .truncationMode(.tail)
+                                                    
+                                                    Text("•")
+                                                        .font(.subheadline)
+                                                        .foregroundColor(.gray)
+                                                    
+                                                    Text(formatDate(date(from: conversation.latestMessageTime!) ?? Foundation.Date()))
+                                                        .font(.subheadline)
+                                                        .foregroundColor(.gray)
+                                                }
+                                            }
+                                            
+                                            else {
+                                                HStack {
+                                                    Text(conversation.latestMessageSender?.id == userID ? "You: " + conversation.latestMessageText : conversation.latestMessageText)
+                                                        .font(.subheadline)
+                                                        .foregroundColor(colorScheme == .dark ? .white : .black)
+                                                        .bold()
+                                                        .lineLimit(1)
+                                                        .truncationMode(.tail)
+                                                    
+                                                    Text("•")
+                                                        .font(.subheadline)
+                                                        .foregroundColor(.gray)
+                                                    
+                                                    Text(formatDate(date(from: conversation.latestMessageTime!) ?? Foundation.Date()))
+                                                        .font(.subheadline)
+                                                        .foregroundColor(.gray)
+                                                }
+                                            }
+                                        }
+                                        
+                                        Spacer()
+                                    }
                                 }
+                                
+                                Divider()
                             }
                         }
-                        .padding()
                     }
+                    .padding()
                 }
             }
-            .navigationTitle("Messages")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        newConversation()
-                    } label: {
-                        Image(systemName: "plus")
-                            .bold()
-                    }
-                }
-            }
-            .toolbar(removing: .sidebarToggle)
-        } detail: {
-            Text("Select a conversation")
         }
-        .navigationBarHidden(true)
-        .navigationSplitViewStyle(.balanced)
+        .navigationTitle("Messages")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    newConversation()
+                } label: {
+                    Image(systemName: "plus")
+                        .bold()
+                }
+            }
+        }
         .onAppear {
-            NotificationCenter.default.post(name: .showTabBar, object: nil)
-            DataManager.shared.shouldShowTabBar = true
             viewModel.fetchInitialData()
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in

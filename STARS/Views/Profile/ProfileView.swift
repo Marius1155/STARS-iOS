@@ -54,16 +54,6 @@ struct ProfileView: View {
                 }
             }
         }
-        .onAppear {
-            if userID != id {
-                NotificationCenter.default.post(name: .hideTabBar, object: nil)
-            }
-            
-            else {
-                NotificationCenter.default.post(name: .showTabBar, object: nil)
-                DataManager.shared.shouldShowTabBar = true
-            }
-        }
         /*ScrollView {
             VStack {
                 if profile.id != "" {

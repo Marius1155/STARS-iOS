@@ -1,0 +1,5 @@
+mutation AddPerformanceVideo($data: PerformanceVideoInput!) {
+  addPerformanceVideo(data: $data) {
+    id
+  }
+}

@@ -9,257 +9,236 @@ import SwiftUI
 import SDWebImageSwiftUI
 
 struct SearchView: View {
-    /*@State private var searchText: String = ""*/
+    @State private var searchText: String = ""
+    @State private var view: Int = 1 // 1: Music, 2: Podcasts, etc.
     
     var body: some View {
-        /*SearchView1(searchText: $searchText)
-            .searchable(text: $searchText, placement:
-                    .navigationBarDrawer(displayMode: .always), prompt: "Search")
-            .navigationTitle("Search")*/
+        VStack(spacing: 0) {
+            // 1. The Category Picker
+            Picker("", selection: $view) {
+                Image(systemName: "music.note").tag(1)
+                Image(systemName: "microphone.fill").tag(2)
+                Image(systemName: "hanger").tag(3)
+                Image(systemName: "person.crop.circle").tag(4)
+            }
+            .pickerStyle(.segmented)
+            .padding()
+            
+            // 2. The Content View
+            if view == 1 {
+                MusicSearchContent(mainSearchText: $searchText)
+            }
+            else if view == 2 {
+                PodcastsSearchContent(mainSearchText: $searchText)
+            }
+            else {
+                // Placeholders for other tabs
+                ContentUnavailableView("Coming Soon", systemImage: "hammer")
+            }
+        }
+        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search Library")
+        .navigationTitle("Search")
     }
 }
 
-struct SearchView1: View {
-    /*@Environment(\.isSearching) private var isSearching
-    @Binding var searchText: String
-    
-     
-    @AppStorage("userID") var userID: String = ""
-    
-    @State private var showPopup = false
-    @State private var view: Int = 1
-    @State private var isReady = false
-    
-    @State private var projects: [Project] = []
-    @State private var musicVideos: [MusicVideo] = []
-    @State private var podcasts: [Podcast] = []
-    
-    @State private var userIDs: [String] = []
-    @State private var lastUserID: DocumentSnapshot? = nil
-    @State private var passItOnAsLastUserID: DocumentSnapshot? = nil*/
+// MARK: - Subview for Music Tab
+struct MusicSearchContent: View {
+    @Binding var mainSearchText: String
     
     var body: some View {
-        /*ScrollView {
-            if isSearching {
-                VStack {
-                    Picker("", selection: $view) {
-                        Image(systemName: "music.note").tag(1)
-                        Image(systemName: "microphone.fill").tag(2)
-                        Image(systemName: "tv").tag(3)
-                        Image(systemName: "hanger").tag(4)
-                        Image(systemName: "person.crop.circle").tag(5)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding()
-                    
-                    if view == 5 {
-                        Group {
-                            if userIDs.isEmpty {
-                                Spacer()
-                                Text("No users found.")
-                                Spacer()
-                            }
-                            
-                            else {
-                                ForEach(userIDs, id: \.self) { userID in
-                                    ProfilePreview(profileID: userID)
-                                    Divider()
-                                }
-                            }
-                        }
-                        .onAppear {
-                            dataManager.fetchProfilesCarelesslyLikeYouDontHaveAWorryInTheWorldAndUsersToSatisfy() { fetchedProfileIDs in
-                                userIDs = fetchedProfileIDs.filter { $0 != userID }
-                                print("yass")
-                            }
-                        }
-                    }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                
+                // --- SECTION A: Local Results (Dummy Data) ---
+                // This is where your actual local database results will go later
+                if !mainSearchText.isEmpty {
+                    Text("Results for \"\(mainSearchText)\"")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
                 }
-            } else {
-                if !isReady {
-                    Spacer()
-                    ProgressView()
-                        .frame(width: 100, height: 100)
-                    Spacer()
-                }
-                else {
-                    VStack {
-                            HStack {
-                                Text("Featured Projects")
-                                    .font(.title2)
-                                    .bold()
-                                /*.padding(5)
-                                 .background {
-                                 RoundedRectangle(cornerRadius: 10)
-                                 .foregroundColor(.accentColor)
-                                 .shadow(radius: 10)
-                                 }*/
-                                
-                                Spacer()
-                            }
-                            .padding(.horizontal)
-                            .padding(.top)
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack {
-                                    ForEach($projects) { $project in
-                                        NavigationLink{
-                                            ProjectDetailView(project: $project)
-                                        } label: {
-                                            ProjectPreview(project: project)
-                                                .foregroundColor(.primary)
-                                        }
-                                    }
-                                }
-                            }
-                            .padding(.horizontal)
-                            
-                            HStack {
-                                Text("Featured Music Videos")
-                                    .font(.title2)
-                                    .bold()
-                                
-                                Spacer()
-                            }
-                            .padding(.horizontal)
-                            .padding(.top)
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack {
-                                    ForEach(musicVideos) { musicVideo in                                        NavigationLink{
-                                        MusicVideoDetailView(musicVideo: musicVideo)
-                                    } label: {
-                                        MusicVideoPreview(musicVideo: musicVideo)
-                                            .foregroundColor(.primary)
-                                    }
-                                    }
-                                }
-                            }
-                            .padding(.horizontal)
-                            
-                            /*ScrollView{
-                             VStack(alignment: .leading) {
-                             ForEach(dataManager.songs) { song in
-                             NavigationLink {
-                             SongDetailView(song: song)
-                             } label: {
-                             HStack{
-                             let image = dataManager.getProject(id: song.projectsPartOf.first!)!.cover
-                             WebImage(url: URL(string: image))
-                             .resizable()
-                             .frame(width: 64, height: 64)
-                             .clipShape(RoundedRectangle(cornerRadius: 7))
-                             .shadow(radius: 10)
-                             
-                             VStack(alignment: .leading) {
-                             SongTitleView(song: song)
-                             .lineLimit(1)
-                             .truncationMode(.tail)
-                             SongArtistNameView(song: song)
-                             .lineLimit(1)
-                             .truncationMode(.tail)
-                             }
-                             }
-                             }
-                             }
-                             }
-                             }
-                             .frame(height:300)*/
-                            HStack {
-                                Text("Featured Podcasts")
-                                    .font(.title2)
-                                    .bold()
-                                
-                                Spacer()
-                            }
-                            .padding(.horizontal)
-                            .padding(.top)
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack {
-                                    ForEach(podcasts) { podcast in
-                                        NavigationLink{
-                                            PodcastDetailView(podcast: podcast)
-                                        } label: {
-                                            PodcastPreview(podcast: podcast)
-                                                .foregroundColor(.primary)
-                                        }
-                                    }
-                                }
-                            }
-                            .padding(.horizontal)
-                        
-                        /*if view == 3 {
-                         List {
-                         ForEach(dataManager.artists) { artist in
-                         if artist.isFeatured {
-                         NavigationLink {
-                         ArtistDetailView(artist: artist)
-                         } label: {
-                         HStack{
-                         WebImage(url: URL(string: artist.picture))
-                         .resizable()
-                         .scaledToFill()
-                         .frame(width: 64, height: 64)
-                         .clipShape(Circle())
-                         .shadow(radius: 10)
-                         
-                         VStack(alignment: .leading) {
-                         Text(artist.name)
-                         .font(.headline)
-                         .bold()
-                         .lineLimit(1)
-                         .truncationMode(.tail)
-                         Text(artist.pronouns)
-                         .italic()
-                         .lineLimit(1)
-                         .truncationMode(.tail)
-                         }
-                         }
-                         }
-                         }
-                         }
-                         }
-                         }*/
+                
+                ForEach(0..<5, id: \.self) { i in
+                    HStack {
+                        Image(systemName: "music.note")
+                            .frame(width: 40, height: 40)
+                            .background(Color.gray.opacity(0.2))
+                            .cornerRadius(6)
+                        VStack(alignment: .leading) {
+                            Text("Song Result \(i + 1)")
+                                .font(.headline)
+                            Text("Artist Name")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                         Spacer()
                     }
-                    /*.navigationTitle("Browse")
-                    .searchable(text: $searchText, isPresented: $isSearchFieldFocused, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search")
-                    .searchPresentationToolbarBehavior(.automatic)*/
+                    .padding(.horizontal)
                 }
-            }
-        }
-        .onAppear{
-            DispatchQueue.main.async {
-                dataManager.fetchFeaturedProjects() {fetchedProjects in
-                    projects = fetchedProjects
+                
+                Divider()
+                    .padding(.vertical)
+                
+                // --- SECTION B: "Add Missing" Links ---
+                // This plugs in your external search views
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Don't see what you're looking for?")
+                        .font(.headline)
+                        .padding(.horizontal)
                     
-                    dataManager.fetchFeaturedMusicVideos() {fetchedMusicVideos in
-                        musicVideos = fetchedMusicVideos
-                        
-                        dataManager.fetchFeaturedPodcasts() {fetchedPodcasts in
-                            podcasts = fetchedPodcasts
-                            isReady = true
-                        }
+                    Text("Add it to the database:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                    
+                    // Link 1: Apple Music Albums
+                    NavigationLink {
+                        SearchAppleMusicAlbumsView(searchText: mainSearchText)
+                            .onAppear {
+                                mainSearchText = ""
+                            }
+                            .hideTabBar()
+                    } label: {
+                        AddSourceRow(icon: "opticaldisc.fill", title: "Search Apple Music Albums", source: "Apple Music")
+                    }
+                    
+                    // Link 2: YouTube Performances
+                    NavigationLink {
+                        SearchYouTubePerformanceVideosView(searchText: mainSearchText)
+                            .onAppear {
+                                mainSearchText = ""
+                            }
+                            .hideTabBar()
+                    } label: {
+                        AddSourceRow(icon: "music.microphone", title: "Search Performances", source: "YouTube")
+                    }
+                    
+                    // Link 3: YouTube Music Videos
+                    NavigationLink {
+                        SearchYouTubeMusicVideosView(searchText: mainSearchText)
+                            .onAppear {
+                                mainSearchText = ""
+                            }
+                            .hideTabBar()
+                    } label: {
+                        AddSourceRow(icon: "music.note.tv.fill", title: "Search Music Videos", source: "YouTube")
                     }
                 }
+                .padding(.bottom, 40)
             }
-        }*/
+            .padding(.top)
+        }
+    }
+}
+
+// MARK: - Subview for Music Tab
+struct PodcastsSearchContent: View {
+    @Binding var mainSearchText: String
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                
+                // --- SECTION A: Local Results (Dummy Data) ---
+                // This is where your actual local database results will go later
+                if !mainSearchText.isEmpty {
+                    Text("Results for \"\(mainSearchText)\"")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                }
+                
+                ForEach(0..<5, id: \.self) { i in
+                    HStack {
+                        Image(systemName: "microphone.fill")
+                            .frame(width: 40, height: 40)
+                            .background(Color.gray.opacity(0.2))
+                            .cornerRadius(6)
+                        VStack(alignment: .leading) {
+                            Text("Podcast Result \(i + 1)")
+                                .font(.headline)
+                            Text("Host Name")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                }
+                
+                Divider()
+                    .padding(.vertical)
+                
+                // --- SECTION B: "Add Missing" Links ---
+                // This plugs in your external search views
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Don't see what you're looking for?")
+                        .font(.headline)
+                        .padding(.horizontal)
+                    
+                    Text("Add it to the database:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                    
+                    NavigationLink {
+                        SearchApplePodcastsView(searchText: mainSearchText)
+                            .onAppear {
+                                mainSearchText = ""
+                            }
+                            .hideTabBar()
+                    } label: {
+                        AddSourceRow(icon: "microphone.fill", title: "Search Apple Podcasts", source: "Apple Podcasts")
+                    }
+                }
+                .padding(.bottom, 40)
+            }
+            .padding(.top)
+        }
+    }
+}
+
+// MARK: - Helper View for the Buttons
+struct AddSourceRow: View {
+    @Environment(\.colorScheme) var colorScheme
+
+    let icon: String
+    let title: String
+    let source: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .frame(width: 30)
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+            
+            Text(title)
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+            
+            Spacer()
+            
+            Text(source)
+                .font(.caption)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(4)
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+            
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(colorScheme == .dark ? .white : .black)
+        }
+        .padding()
+        .background(Color.gray.opacity(0.05)) // Subtle background
+        .cornerRadius(12)
+        .padding(.horizontal)
     }
 }
 
 #Preview {
-    /*SearchView()
-         
-        .onAppear {
-            UserDefaults.standard.set(true, forKey: "userIsLoggedIn")
-            UserDefaults.standard.set("AX7ztju3UBWYsTXCXfFsYFCcJSl2", forKey: "userID")
-            UserDefaults.standard.set("Marius115", forKey: "userTag")
-            UserDefaults.standard.set(true, forKey: "userHasPremium")
-            UserDefaults.standard.set("mariusgabrielbudai@gmail.com", forKey: "userEmail")
-            UserDefaults.standard.set("He/Him", forKey: "userPronouns")
-            UserDefaults.standard.set("https://firebasestorage.googleapis.com:443/v0/b/fir-8a33f.appspot.com/o/banners%2FAX7ztju3UBWYsTXCXfFsYFCcJSl2.jpg?alt=media&token=733eb320-df39-4814-8246-45724befdfe3", forKey: "userBannerPicture")
-            UserDefaults.standard.set("https://firebasestorage.googleapis.com:443/v0/b/fir-8a33f.appspot.com/o/profile_pictures%2FAX7ztju3UBWYsTXCXfFsYFCcJSl2.jpg?alt=media&token=ae930d67-ae62-475f-beab-976cac6fa102", forKey: "userProfilePicture")
-            UserDefaults.standard.set(true, forKey: "userIsAdmin")
-        }*/
+    NavigationView {
+        SearchView()
+    }
 }

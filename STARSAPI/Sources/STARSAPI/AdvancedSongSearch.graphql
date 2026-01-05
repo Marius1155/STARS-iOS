@@ -1,0 +1,22 @@
+query AdvancedSongSearch($term: String!) {
+  songs(filters: { search: $term }, first: 100) {
+    edges {
+      node {
+        id
+        title
+        releaseDate
+        songArtists {
+          edges {
+            node {
+              artist {
+                id
+                name
+                appleMusicId
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

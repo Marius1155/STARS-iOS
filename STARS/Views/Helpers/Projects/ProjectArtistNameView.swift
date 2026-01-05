@@ -2,43 +2,36 @@ import SwiftUI
 import STARSAPI
 
 struct ProjectArtistNameView: View {
-    var artistsIDs: [String]
-    var linkToArtists = false
-    @State private var artistsNames: [String]
-
-    init(artistsIDs: [String], linkToArtists: Bool = false) {
-        self.artistsIDs = artistsIDs
-        self.linkToArtists = linkToArtists
-        _artistsNames = State(initialValue: Array(repeating: "", count: artistsIDs.count))
-    }
+    let artists: [(id: String, name: String, position: Int)]
+    var linkToArtists: Bool = false
 
     var body: some View {
         HStack(spacing: 0) {
             if linkToArtists {
-                ForEach(Array(artistsIDs.enumerated()), id: \.offset) { index, id in
+                ForEach(artists.sorted { $0.position < $1.position }, id: \.id) { artist in
                     NavigationLink {
-                        ArtistDetailView(artistID: id)
+                        ArtistDetailView(artistID: artist.id)
                     } label: {
-                        Text(artistsNames[index])
+                        Text(artist.name)
                     }
                     
-                    if index < artistsIDs.count - 2 {
+                    if artist.position < artists.count - 2 {
                         Text(", ")
                     }
                     
-                    else if index == artistsIDs.count - 2 {
+                    else if artist.position == artists.count - 2 {
                         Text(" & ")
                     }
                 }
             } else {
-                ForEach(Array(artistsIDs.enumerated()), id: \.offset) { index, id in
-                    Text(artistsNames[index])
+                ForEach(artists.sorted { $0.position < $1.position }, id: \.id) { artist in
+                    Text(artist.name)
                     
-                    if index < artistsIDs.count - 2 {
+                    if artist.position < artists.count - 2 {
                         Text(", ")
                     }
                     
-                    else if index == artistsIDs.count - 2 {
+                    else if artist.position == artists.count - 2 {
                         Text(" & ")
                     }
                 }
@@ -47,34 +40,9 @@ struct ProjectArtistNameView: View {
                 .font(.caption)
             }
         }
-        .onAppear {
-            for (index, id) in artistsIDs.enumerated() {
-                fetchArtistName(artistID: id) { name in
-                    DispatchQueue.main.async {
-                        if index < artistsNames.count {
-                            artistsNames[index] = name
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    private func fetchArtistName(artistID: String, completion: @escaping (String) -> Void) {
-        Network.shared.apollo.fetch(query: STARSAPI.GetArtistNameQuery(id: String(artistID))) { result in
-            switch result {
-            case .success(let graphQLResult):
-                if let fetched = graphQLResult.data?.artists.edges.first?.node {
-                    completion(fetched.name)
-                }
-            case .failure(let error):
-                print("Error loading project: \(error)")
-                completion("Error")
-            }
-        }
     }
 }
 
 #Preview {
-    ProjectArtistNameView(artistsIDs: ["1", "2"], linkToArtists: true)
+    ProjectArtistNameView(artists: [(id: "1", name: "Charli xcx", position: 1)])
 }

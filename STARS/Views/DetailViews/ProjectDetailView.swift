@@ -2,10 +2,9 @@ import SwiftUI
 import SDWebImageSwiftUI
 import STARSAPI
 
-struct ProjectDetailView: View {
-     
-    
-    @State @AppStorage("userID") var userID: String = ""
+/*struct ProjectDetailView: View {
+    var dataManager: DataManager?
+    @AppStorage("userID") var userID: String = ""
     
     @State private var showNewReview = false
     @State private var showNewSongReview = false
@@ -59,12 +58,12 @@ struct ProjectDetailView: View {
                 
                 // --- Project artists ---
                 if let projectArtists = project?.projectArtists.edges {
-                    ProjectArtistNameView(
-                        artistsIDs: projectArtists.compactMap { $0.node.artist.id }, linkToArtists: true
+                    /*ProjectArtistNameView(
+                        artists: projectArtists.compactMap { (id: $0.node.artist.id, name: $0.node.artist.name, position: $0.node.position) }, linkToArtists: true
                     )
                     .font(.title3)
                     .padding(.bottom, -1)
-                    .multilineTextAlignment(.center)
+                    .multilineTextAlignment(.center)*/
                 }
                 
                 // --- Release info ---
@@ -94,8 +93,8 @@ struct ProjectDetailView: View {
                 // --- Rating & reviews box ---
                 HStack(spacing: 2) {
                     NavigationLink {
-                        ReviewsView(objectID: project?.id ?? "", objectType: "project", projectTitle: project?.title ?? "", projectArtistsIDs: project?.projectArtists.edges.compactMap { $0.node.artist.id })
-                             
+                        /*ReviewsView(objectID: project?.id ?? "", objectType: "project", projectTitle: project?.title ?? "", projectArtistsIDs: project?.projectArtists.edges.compactMap { $0.node.artist.id })
+                            .hideTabBar()*/
                     } label: {
                         HStack(spacing: 0) {
                             if let starAverage = project?.starAverage {
@@ -253,8 +252,7 @@ struct ProjectDetailView: View {
             }
             .onAppear {
                 fetchProject()
-                NotificationCenter.default.post(name: .showTabBar, object: nil)
-                DataManager.shared.shouldShowTabBar = true
+                dataManager.accentColor = Color
             }
         }
         .navigationTitle(project?.title ?? "Unknown")
@@ -324,4 +322,4 @@ struct ProjectDetailView: View {
         ProjectDetailView(projectID: "1")
     }
 }
-
+*/

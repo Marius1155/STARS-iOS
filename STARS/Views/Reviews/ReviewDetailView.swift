@@ -9,7 +9,7 @@ import SwiftUI
 import STARSAPI
 import SDWebImageSwiftUI
 
-@MainActor
+/*@MainActor
 class ReviewDetailViewModel: ObservableObject {
     // MARK: - Properties
     private var dataManager: DataManager?
@@ -1243,3 +1243,4 @@ struct ReviewDetailView: View {
     //ReviewDetailView()
 }
 
+*/

@@ -15,6 +15,7 @@ import STARSAPI
 
 
 // This ViewModel will be the "brain" for your ConversationView
+/*
 @MainActor
 class ReviewsViewModel: ObservableObject {
     private var dataManager: DataManager?
@@ -372,7 +373,7 @@ struct ReviewsView: View {
     @State private var dislikesCount: [Int] = []
     @State private var commentsCount: [Int] = []
     
-    init(objectID: String, objectType: String, projectTitle: String? = nil, projectArtistsIDs: [String]? = nil) {
+    init(objectID: String, objectType: String, projectTitle: String? = nil, projectArtists: [(id: String, name: String, position: Int)]? = nil) {
         _viewModel = StateObject(wrappedValue: ReviewsViewModel(objectID: objectID, objectType: objectType))
         
         self.projectTitle = projectTitle
@@ -882,3 +883,4 @@ extension Collection {
          */
 //}
 
+*/

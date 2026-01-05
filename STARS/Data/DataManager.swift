@@ -17,7 +17,7 @@ class DataManager {
     static let shared = DataManager()
     
     var shouldShowTabBar: Bool = true
-    var accentColor: Color = .white
+    var accentColor: Color = .pink
     
     private init() {} 
 }

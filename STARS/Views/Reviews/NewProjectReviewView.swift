@@ -15,7 +15,7 @@ struct NewProjectReviewView: View {
     
     var projectID: String
     var projectTitle: String
-    var projectArtistsIDs: [String]
+    var projectArtists: [(id: String, name: String, position: Int)]
   
     @Binding var showErrorPostingNewReviewAlert: Bool
     
@@ -43,9 +43,9 @@ struct NewProjectReviewView: View {
                         }
                         
                         HStack {
-                            Image(systemName: projectArtistsIDs.count == 1 ? "person.fill" : "person.2.fill")
+                            Image(systemName: projectArtists.count == 1 ? "person.fill" : "person.2.fill")
                             
-                            ProjectArtistNameView(artistsIDs: projectArtistsIDs)
+                            ProjectArtistNameView(artists: projectArtists)
                         }
                     }
                     .listRowSeparator(.hidden)
